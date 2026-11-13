@@ -1,0 +1,15 @@
+# ==============================
+# Build directories
+# ==============================
+
+/build/
+/build-*/
+/cmake-build-*/
+/out/
+/bin/
+/obj/
+
+# CMake generated files
+CMakeFiles
+
+/.vscode
