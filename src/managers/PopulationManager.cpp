@@ -63,7 +63,7 @@ std::vector<std::shared_ptr<Person>> PopulationManager::findEligiblePartners(std
             continue;
         }
 
-        if (partner->getAge() > minMarriageAge && 
+        if (partner->getAge() < minMarriageAge || 
             partner->getAge() > maxPersonAge) {
                 continue;
             }
