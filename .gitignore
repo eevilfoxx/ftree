@@ -14,3 +14,7 @@ CMakeFiles
 
 # VSCode files
 /.vscode
+
+#Agents
+AGENT_RULES.md
+/prompts
