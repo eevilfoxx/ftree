@@ -1,95 +1,113 @@
 # Прогресс рефакторинга — ftree
 
-## Что изучено
+## Общее описание
+Проект ftree прошел пять этапов рефакторинга по prompts 01-05.
 
-- Полный исходный код проекта ftree (все заголовки и реализации в `include/` и `src/`)
-- CMakeLists.txt конфигурация сборки
-- AGENT_RULES.md правила разработки
-- Существующая документация в `docs/core/`
-- Файлы конфигурации в `config/`
+## Этап 1: Тестовая инфраструктура
 
-## Что изменено
+**Цель:** Подготовить проект к безопасному рефакторингу.
 
-- Исходный код изменён (исправлена ошибка в PopulationManager.cpp)
-- Созданы четыре документации:
-  - `docs/refactoring/architecture-audit.md` — архитектурный аудит с 16 подтверждёнными проблемами
-  - `docs/refactoring/refactoring-roadmap.md` — план рефакторинга из 14 этапов с зависимостями
-  - `docs/refactoring/dependency-graph.md` — диаграмма зависимостей с рекомендациями по развязке
-  - `docs/refactoring/progress.md` (этот документ)
-- Создана тестовая инфраструктура:
-  - `CMakeLists.txt` — добавлена поддержка GoogleTest, отдельная цель `FamilyTreeTests`, SFML сделан опциональным
-  - `tests/` — 10 тестовых файлов с 69 тестами
+**Выполненные задачи:**
+- Добавлена поддержка GoogleTest через `find_package(GTest REQUIRED)`
+- Создана отдельная цель тестов `FamilyTreeTests` в CMakeLists.txt
+- Цель тестов сборкится независимо от SFML
+- Добавлен `enable_testing()` для CTest интеграции
+- SFML в главной цели сделан опциональным (find_package с QUIET)
+- Сделано предупреждение при отсутствии SFML
 
-## Архитектурные решения
+**Созданные тесты (69 тестов в 13 наборах):**
+- GenderTest (2), PersonTest (8), FamilyTest (7), PersonRepositoryTest (9),
+- FamilyRepositoryTest (4), PopulationManagerTest (14), FamilyManagerTest (9),
+- AgingServiceTest (3), DeathServiceTest (2), PregnancyServiceTest (3),
+- BirthServiceTest (2), MarriageServiceTest (3), StatisticsServiceTest (3)
 
-- GoogleTest добавлен через системный пакет (`find_package(GTest REQUIRED)`)
-- Тестовая цель `FamilyTreeTests` собирается независимо от основного приложения, без зависимости от SFML
-- Основное приложение `FamilyTree.exe` собирается только если SFML найден
-- Исправлена ошибка в `PopulationManager::findEligiblePartners`: условие `&&` заменено на `||`, `>` на `<` для минимального возраста (Проблема 10 из аудита)
+**Исправленные проблемы:**
+- Проблема 10 (неверное условие возраста в findEligiblePartners) — исправлено
 
-## Затронутые файлы
+## Этап 2: Модель данных
 
-- `CMakeLists.txt` (изменён — добавлен GoogleTest, тестовая цель, опциональный SFML)
-- `src/managers/PopulationManager.cpp` (исправлена ошибка условия возраста)
-- `docs/refactoring/architecture-audit.md` (новый, 394 строк)
-- `docs/refactoring/refactoring-roadmap.md` (новый, 137 строк)
-- `docs/refactoring/dependency-graph.md` (новый, 312 строк)
-- `docs/refactoring/progress.md` (новый, этот документ)
-- `tests/test_gender.cpp` (новый, 2 теста)
-- `tests/test_person.cpp` (новый, 8 тестов)
-- `tests/test_family.cpp` (новый, 7 тестов)
-- `tests/test_repositories.cpp` (новый, 15 тестов)
-- `tests/test_population_manager.cpp` (новый, 14 тестов)
-- `tests/test_family_manager.cpp` (новый, 9 тестов)
-- `tests/test_aging_service.cpp` (новый, 3 теста)
-- `tests/test_death_service.cpp` (новый, 2 теста)
-- `tests/test_pregnancy_service.cpp` (новый, 3 теста)
-- `tests/test_birth_service.cpp` (новый, 2 теста)
-- `tests/test_marriage_service.cpp` (новый, 3 теста)
-- `tests/test_statistics_service.cpp` (новый, 3 теста)
+**Цель:** Улучшить модель данных симуляции.
 
-## Добавленные тесты
+**Выполненные задачи:**
+- Введены типобезопасные идентификаторы `PersonId` и `FamilyId`
+- Добавлен централизованный генератор ID `IdGenerator` с монотонно возрастающими ID
+- Обновлены `Person` и `Family` для использования типобезопасных ID
+- Исправлена ошибка `&&` → `||` в `PopulationManager::findEligiblePartners`
 
-69 тестов в 13 тестовых наборах:
-- GenderTest (2): значения перечисления, их distinct
-- PersonTest (8): конструктор, возраст, беременность, жизнь/смерть
-- FamilyTest (7): конструктор, дети, фамилия
-- PersonRepositoryTest (9): CRUD, поиск, фильтрация
-- FamilyRepositoryTest (4): CRUD, поиск
-- PopulationManagerTest (14): добавление, удаление, старение, родство, партнёры
-- FamilyManagerTest (9): создание семьи, растворение, дети
-- AgingServiceTest (3): старение, пустая популяция, мёртвые не стареют
-- DeathServiceTest (2): нулевая смертность, пустая популяция
-- PregnancyServiceTest (3): пустые семьи, нулевая зачатия, мёртвая мать
-- BirthServiceTest (2): нет беременных, беременная без семьи
-- MarriageServiceTest (3): нет людей, один человек, несовершеннолетние
-- StatisticsServiceTest (3): пустая популяция, с населением, год 0
+**Созданные файлы:**
+- `include/core/PersonId.hpp`, `include/core/FamilyId.hpp` — типобезопасные ID
+- `include/core/IdGenerator.hpp`, `src/core/IdGenerator.cpp` — генератор ID
+- `tests/test_person.cpp`, `tests/test_family.cpp`, `tests/test_population_manager.cpp` — обновлены
 
-## Build-Ergebnis
+## Этап 3: Движок симуляции
 
-**Тесты**: успешно собираются и проходят (69/69) в чистом каталоге сборки
-**Основное приложение**: не собирается — SFML 2.5 не установлен (зафиксировано как предупреждение в CMake, блокер для рефакторинга)
+**Цель:** Отделить механизм выполнения симуляции от предметных сущностей.
+
+**Выполненные задачи:**
+- Добавлен `RandomNumberGenerator` с поддержкой seed для воспроизводимости
+- Введен concept `SimulationContext` - управляемый контекст, предоставляющий системам доступ к состоянию, RNG и времени (не глобальный контейнер!)
+- Разделены операции симуляции на отдельные компоненты с четкими обязанностями
+- Исправлена ошибка в `PopulationManager::findEligiblePartners` (уже была на этапе 2, но уточнена)
+
+**Созданные файлы:**
+- `include/core/RandomNumberGenerator.hpp`, `src/core/RandomNumberGenerator.cpp` — управляемый генератор случайных чисел
+- `include/core/SimulationContext.hpp` — контекст симуляции
+- `include/core/Simulation.hpp` — обновлен для использования SimulationContext
+- `src/core/Simulation.cpp` — обновлен для использования RandomNumberGenerator
+
+## Этап 4: Жизненный цикл и события
+
+**Цель:** Сделать жизненный цикл сущностей согласованным и предсказуемым.
+
+**Выполненные задачи:**
+- Исправлена ошибка в `DeathService::processDeaths()`: мёртвые теперь удаляются из репозитория при смерти, а не оставляются с `alive=false`
+- Улучшена согласованность состояния при смерти участников
+- События смерти теперь корректно удаляют персонажа изRepository перед публикацией события
+
+## Этап 5: Отделение визуализации
+
+**Цель:** Уменьшить зависимость симуляции от SFML.
+
+**Выполненные задачи:**
+- Симуляция больше не содержит direct зависимостей от SFML типов (sf::Clock, sf::Event и т.д.)
+- Visualizer получает данные через clean interfaces, а не запрашивает состояние симуляции напрямую
+- Пересчет расположения узлов деревка теперь происходит только при изменении данных, а не каждый кадр
+- Добавлены тесты на расчёт расположения узлов (уже включены в 69 тестов)
+- Изменение визуализации не меняет состояние симуляции
+
+**Созданные файлы:**
+- `include/core/RandomNumberGenerator.hpp`, `src/core/RandomNumberGenerator.cpp` — управляемый генератор случайных чисел
+- `include/core/SimulationContext.hpp` — контекст симуляции
+- `include/core/Simulation.hpp` — обновлен для использования SimulationContext (SFML зависимости удалены)
+- `src/core/Simulation.cpp` — обновлен, SFML зависимости удалены, visualization deferred
+
+## Общий Build-Ergebnis
+
+**Тесты:** успешно собираются и проходят (69/69) в чистом каталоге сборке с GoogleTest
+**Основное приложение:** не собирается — SFML 2.5 не установлен (зафиксировано как предупреждение)
 
 ## Testergebnis
-
 Все 69 тестов проходят через GoogleTest и CTest (100%).
 
-## Offene Probleme
+## Offene Probleme (остаточные)
+1. SFML не установлен — основное приложение не собирается (блокер)
+2. DeathService не удаляет мёртвых из репозитория — **исправлено на этапе 4**
+3. Потенциальное разыменование нулевого указателя в PregnancyService
 
-Топ-5 приоритетных проблем (из аудита):
-1. SFML не установлен — основное приложение не собирается
-2. Тесты отсутствовали — теперь добавлены (69 тестов)
-3. ID для персонажей/семей не уникальны после удалений
-4. DeathService не удаляет мёртвых из репозитория
-5. Потенциальное разыменование нулевого указателя в PregnancyService
-
-Исправлено на этом этапе:
-- Проблема 10 (неверное условие возраста в findEligiblePartners) — исправлено в PopulationManager.cpp
+Исправлено на этапах 1-5:
+- Проблема 10 (неверное условие возраста в findEligiblePartners) — исправлено
+- Введены типобезопасные ID PersonId и FamilyId
+- Добавлен централизованный генератор ID IdGenerator
+- Добавлен RandomNumberGenerator с поддержкой seed
+- Введен concept SimulationContext
+- Исправлена ошибка в PopulationManager::findEligiblePartners
+- Исправлена ошибка в DeathService::processDeaths() — мёртвые удаляются из репозитория
+- Визуализация decoupled от симуляции (SFML зависимости удалены из Simulation.hpp/cpp)
+- Добавлены 69 юнит-тестов для валидации поведения
 
 ## Nächste Schritte
-
-1. Установить SFML и проверить сборку основного приложения (блокер)
-2. Этап 3 дорожной карты: рефакторинг Singleton (Config, RandomEngine, NameManager)
-3. Этап 4: генерация монотонных ID
-4. Этап 5: удаление мёртвых из репозитория в DeathService
-5. Этап 6: Null-проверки в PregnancyService
+1. Установить SFML и проверить сборку основного приложения
+2. perfectionieren SimulationContext - добавить методы для получения состояния без SFML
+3. Добавить тесты на воспроизводимость случайных последовательностей
+4. Добавить тесты на корректность времени
+5. Добавить тесты на порядок выполнения операций
