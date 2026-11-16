@@ -80,6 +80,7 @@ jobs:
         with:
           arch: x64
 
+      
       - name: Install pkg-config
         uses: msys2/setup-msys2@v2
         with:
@@ -88,11 +89,20 @@ jobs:
           install: >-
             mingw-w64-ucrt-x86_64-pkgconf
 
-      - name: Verify pkg-config
+      - name: Configure pkg-config for vcpkg
         shell: pwsh
         run: |
-          where.exe pkg-config
-          pkg-config --version
+          $pkgConfig = "C:\msys64\ucrt64\bin\pkg-config.exe"
+
+          if (!(Test-Path $pkgConfig)) {
+            throw "pkg-config not found: $pkgConfig"
+          }
+
+          "PKG_CONFIG=$pkgConfig" |
+            Out-File -FilePath $env:GITHUB_ENV -Append
+
+          & $pkgConfig --version
+
 
       # ----------------------------------------
       # Install vcpkg
