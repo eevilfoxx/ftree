@@ -1,24 +1,24 @@
-// main.cpp
-#include <iostream>
-#include <memory>
-#include "core/Simulation.hpp"
-#include "entities/repos/MemoryPersonRepository.hpp"
-#include "entities/repos/MemoryFamilyRepository.hpp"
-#include "core/EventDispatcher.hpp"
-#include "core/Config.hpp"
-#include "managers/NameManager.hpp"
+#include "application/Application.hpp"
 
-int main() {
-    Config::getInstance().loadFromFile("../config/simulation.cfg");
-
-    auto personRepo = std::make_shared<MemoryPersonRepository>();
-    auto familyRepo = std::make_shared<MemoryFamilyRepository>();
-    auto eventDispatcher = std::make_shared<EventDispatcher>();
+int main(int argc, char* argv[]) {
+    // Parse arguments for headless mode
+    bool headless = false;
+    for (int i = 1; i < argc; ++i) {
+        if (std::string(argv[i]) == "--headless") {
+            headless = true;
+        }
+    }
     
-    Simulation simulation(personRepo, familyRepo, eventDispatcher);
-    simulation.initialize(10);
-    simulation.enableVisualization(true);
-    simulation.simulateYears(100);
-
+    // Create and run application
+    ftree::application::Application app(headless);
+    
+    if (!app.initialize()) {
+        std::cerr << "Failed to initialize application" << std::endl;
+        return 1;
+    }
+    
+    // Run simulation for 100 years
+    app.run(100, headless);
+    
     return 0;
 }

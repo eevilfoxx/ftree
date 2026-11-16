@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        shell: [bash, cmd]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
+          sudo apt-get install -y libsfml-dev
+
+      if: matrix.os == 'windows-latest'
+        uses: microsoft/setup-vcpkg@v1
+        name: Install vcpkg
+
+      - name: Install dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsfml-dev
+
+      if: matrix.os == 'windows-latest'
+        run: |
+          vcpkg install sfml:x64-windows
+
+      - name: Configure CMake
+        working-directory: ./build
+        run: cmake -S .. -B . -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+
+      - name: Build application
+        working-directory: ./build
+        run: cmake --build . --config Release --parallel
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ctest --test-dir . -C Release --output-on-failure
+          if [ $? -ne 0 ]; then
+            echo "::error Tests failed ::"
+            exit 1
+          fi
+
+      - name: Create archive name
+        working-directory: ./build
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          echo "ARCHIVE_NAME=ftree-linux-x64.tar.gz" >> $GITHUB_ENV
+        shell: bash
+
+      if: matrix.os == 'windows-latest'
+        run: |
+          echo "ARCHIVE_NAME=ftree-windows-x64.zip" >> $GITHUB_ENV
+
+      - name: Package artifacts
+        working-directory: ./build
+        run: |
+          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+            mkdir -p /tmp/release-artifacts
+            cp FamilyTreeTests /tmp/release-artifacts/
+            cp -R ../config /tmp/release-artifacts/
+            cp -R ../assets /tmp/release-artifacts/
+            echo "Assets and binary packed for Linux"
+          elif [ "${{ matrix.os }}" == "windows-latest" ]; then
+            mkdir -p /tmp/release-artifacts
+            # Copy the executable
+            copy .\FamilyTreeTests.exe /tmp/release-artifacts\
+            # Copy SFML DLLs via vcpkg
+            copy "$(vcpkg sfmlDlls)" /tmp/release-artifacts\
+            copy config\* /tmp/release-artifacts\
+            copy assets\* /tmp/release-artifacts\
+            echo "Assets and binary packed for Windows"
+        
+      - name: Upload release assets
+        if: success()
+        working-directory: /tmp/release-artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.ARCHIVE_NAME }}
+          path: /tmp/release-artifacts/*
+
+      - name: Create GitHub Release
+        if: success()
+        working-directory: ./
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Release ${{ github.ref_name }}"
+          files: |
+            ${{ env.ARCHIVE_NAME }}
+          draft: false
+          prerelease: false
