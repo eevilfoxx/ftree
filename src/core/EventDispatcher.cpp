@@ -1,4 +1,5 @@
 #include "core/EventDispatcher.hpp"
+#include <algorithm>
 
 EventDispatcher::HandlerId EventDispatcher::subscribe(EventType type, EventHandler handler) {
     std::lock_guard<std::mutex> lock(mutex);
