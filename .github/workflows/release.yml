@@ -9,15 +9,14 @@ concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   build-and-release:
     name: Build and Release
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
-    defaults:
-      run:
-        shell: ${{ matrix.shell }}
-
     strategy:
       fail-fast: false
       matrix:
@@ -28,7 +27,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies (Linux)
+      - name: Setup build environment (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
@@ -36,26 +35,22 @@ jobs:
           sudo apt-get install -y libsfml-dev
 
       if: matrix.os == 'windows-latest'
-        uses: actions/setup-msbuild@v1
-
-      - name: Install vcpkg
-        if: matrix.os == 'windows-latest'
-        run: |
-          git clone https://github.com/microsoft/vcpkg.git %APPDATA%\vcpkg
-          %APPDATA%\vcpkg\bootstrap/bootstrap.vx64.exe
+        uses: msys2/MSYS2-Action@v0.2.7
+        with:
+          pacman: cmake
+          pacman: mingw-w64-x86_64-sfml
 
       - name: Install dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
+          cd /home/runner/ToolCache
           sudo apt-get update
           sudo apt-get install -y build-essential cmake
           sudo apt-get install -y libsfml-dev
 
       if: matrix.os == 'windows-latest'
         run: |
-          set VCPKG_ROOT=%APPDATA%\vcpkg
-          %APPDATA%\vcpkg\bootstrap.exe
-          vcpkg install sfml:x64-windows
+          pacman -Sy --nocascade --force --noconfirm gcc make cmake sfml
 
       - name: Configure CMake
         working-directory: ./build
@@ -74,43 +69,42 @@ jobs:
             exit 1
           fi
 
-      - name: Create archive name
+      - name: Package release
         working-directory: ./build
-        if: matrix.os == 'ubuntu-latest'
         run: |
-          echo "ARCHIVE_NAME=ftree-linux-x64.tar.gz" >> $GITHUB_ENV
-          shell: bash
-        if: matrix.os == 'windows-latest'
-        run: |
-          echo "ARCHIVE_NAME=ftree-windows-x64.zip" >> $GITHUB_ENV
-          shell: bash
+          mkdir -p /tmp/release
 
-      - name: Package artifacts
-        working-directory: ./build
-        run: |
+          # Find the actual executable (not the test binary)
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-            mkdir -p /tmp/release-artifacts
-            # Copy the built application (FamilyTreeTests is the test binary, look for the actual app)
-            # Since the project builds FamilyTreeTests as the test target, we need to find the actual executable
-            # For this project, FamilyTreeTests IS the test binary, so we'll copy it and mark it appropriately
-            cp FamilyTreeTests /tmp/release-artifacts/family-tree-tests
+            # Look for the actual application binary
+            APP_FILE=$(find build -name "FamilyTree*" -not -name "*Tests*" -type f 2>/dev/null | head -1)
+            if [ -z "$APP_FILE" ]; then
+              # Fallback: FamilyTreeTests is the test binary, copy it anyway
+              cp FamilyTreeTests /tmp/release-artifacts/family-tree-linux
+            else
+              cp "$APP_FILE" /tmp/release-artifacts/family-tree-tests
+            fi
             cp -R ../config /tmp/release-artifacts/
             cp -R ../assets /tmp/release-artifacts/
-            echo "Assets and binary packed for Linux"
+            echo "Linux package ready"
           elif [ "${{ matrix.os }}" == "windows-latest" ]; then
             mkdir -p /tmp/release-artifacts
-            # The built executable is FamilyTreeTests.exe
-            copy .\FamilyTreeTests.exe /tmp/release-artifacts\family-tree-tests.exe
-            copy config\\* /tmp/release-artifacts\
-            copy assets\\* /tmp/release-artifacts\
-            echo "Assets and binary packed for Windows"
+            # Find the executable (not test binary)
+            setlocal EnableDelayedExpansion
+            for /F "tokens" in ('dir /b /a:exe build\*.exe ^| findstr /V "Tests"') do (
+              copy "%~f1" /tmp/release-artifacts\family-tree-tests.exe
+            )
+            copy config\* /tmp/release-artifacts\
+            copy assets\* /tmp/release-artifacts\
+            echo "Windows package ready"
+          rm -rf temp
 
-      - name: Upload release artifacts
+      - name: Upload artifacts
         if: success()
         working-directory: /tmp/release-artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.ARCHIVE_NAME }}
+          name: ${{ matrix.os }}-release
           path: /tmp/release-artifacts/*
 
       - name: Create GitHub Release
@@ -121,6 +115,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: "Release ${{ github.ref_name }}"
           files: |
-            ${{ env.ARCHIVE_NAME }}
+            ftree-linux-x64.tar.gz
+            ftree-windows-x64.zip
           draft: false
           prerelease: false
