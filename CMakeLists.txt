@@ -116,6 +116,7 @@ if(BUILD_TESTING)
         tests/test_birth_service.cpp
         tests/test_marriage_service.cpp
         tests/test_statistics_service.cpp
+        tests/test_formulas.cpp
         # Исходные файлы предметной области (без SFML и без main)
         src/core/RandomEngine.cpp
         src/entites/Person.cpp
