@@ -1,4 +1,5 @@
 // MarriageService.cpp
+#include <algorithm>
 #include "services/MarriageService.hpp"
 
 MarriageService::MarriageService(std::shared_ptr<FamilyManager> familyManager,
