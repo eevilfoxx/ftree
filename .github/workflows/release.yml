@@ -10,112 +10,199 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build-and-release:
-    name: Build and Release
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 120
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        shell: [bash, cmd]
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup build environment (Linux)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake
-          sudo apt-get install -y libsfml-dev
-
-      if: matrix.os == 'windows-latest'
-        uses: msys2/MSYS2-Action@v0.2.7
-        with:
-          pacman: cmake
-          pacman: mingw-w64-x86_64-sfml
-
-      - name: Install dependencies (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          cd /home/runner/ToolCache
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake
-          sudo apt-get install -y libsfml-dev
-
-      if: matrix.os == 'windows-latest'
-        run: |
-          pacman -Sy --nocascade --force --noconfirm gcc make cmake sfml
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            libsfml-dev \
+            libgtest-dev
 
       - name: Configure CMake
-        working-directory: ./build
-        run: cmake -S .. -B . -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=ON
 
-      - name: Build application
-        working-directory: ./build
-        run: cmake --build . --config Release --parallel
+      - name: Build
+        run: cmake --build build --config Release --parallel
 
       - name: Run tests
-        working-directory: ./build
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Package Linux
+        shell: bash
         run: |
-          ctest --test-dir . -C Release --output-on-failure
-          if [ $? -ne 0 ]; then
-            echo "::error Tests failed ::"
+          set -euo pipefail
+
+          mkdir -p release/ftree
+
+          APP="$(find build -type f -name 'FamilyTree' -not -name '*Tests*' -print -quit)"
+
+          if [ -z "$APP" ]; then
+            echo "::error::FamilyTree executable not found"
+            find build -type f -executable
             exit 1
           fi
 
-      - name: Package release
-        working-directory: ./build
-        run: |
-          mkdir -p /tmp/release
+          cp "$APP" release/ftree/
+          cp -R assets release/ftree/
+          cp -R config release/ftree/
 
-          # Find the actual executable (not the test binary)
-          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-            # Look for the actual application binary
-            APP_FILE=$(find build -name "FamilyTree*" -not -name "*Tests*" -type f 2>/dev/null | head -1)
-            if [ -z "$APP_FILE" ]; then
-              # Fallback: FamilyTreeTests is the test binary, copy it anyway
-              cp FamilyTreeTests /tmp/release-artifacts/family-tree-linux
-            else
-              cp "$APP_FILE" /tmp/release-artifacts/family-tree-tests
-            fi
-            cp -R ../config /tmp/release-artifacts/
-            cp -R ../assets /tmp/release-artifacts/
-            echo "Linux package ready"
-          elif [ "${{ matrix.os }}" == "windows-latest" ]; then
-            mkdir -p /tmp/release-artifacts
-            # Find the executable (not test binary)
-            setlocal EnableDelayedExpansion
-            for /F "tokens" in ('dir /b /a:exe build\*.exe ^| findstr /V "Tests"') do (
-              copy "%~f1" /tmp/release-artifacts\family-tree-tests.exe
-            )
-            copy config\* /tmp/release-artifacts\
-            copy assets\* /tmp/release-artifacts\
-            echo "Windows package ready"
-          rm -rf temp
+          cat > release/ftree/README.txt <<'EOF'
+          ftree - Linux
 
-      - name: Upload artifacts
-        if: success()
-        working-directory: /tmp/release-artifacts
-        uses: actions/upload-artifact@v3
+          Run:
+            ./FamilyTree
+
+          Keep assets and config next to the executable.
+          SFML runtime libraries must be installed on the system.
+          EOF
+
+          tar -czf ftree-linux-x64.tar.gz -C release ftree
+
+      - name: Upload Linux archive
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-release
-          path: /tmp/release-artifacts/*
+          name: ftree-linux-x64
+          path: ftree-linux-x64.tar.gz
+          if-no-files-found: error
+          retention-days: 7
 
-      - name: Create GitHub Release
-        if: success()
-        working-directory: ./
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-sfml
+            mingw-w64-x86_64-gtest
+            zip
+
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Package Windows
+        shell: msys2 {0}
+        run: |
+          set -euo pipefail
+
+          mkdir -p release/ftree
+
+          APP="$(find build -type f -iname 'FamilyTree.exe' ! -iname '*Tests*' -print -quit)"
+
+          if [ -z "$APP" ]; then
+            echo "::error::FamilyTree.exe not found"
+            find build -type f -iname '*.exe'
+            exit 1
+          fi
+
+          cp "$APP" release/ftree/
+
+          cp -R assets release/ftree/
+          cp -R config release/ftree/
+
+          # Include runtime DLL dependencies.
+          for dll in /mingw64/bin/*.dll; do
+            cp "$dll" release/ftree/
+          done
+
+          cat > release/ftree/README.txt <<'EOF'
+          ftree - Windows x64
+
+          Run:
+            FamilyTree.exe
+
+          Keep assets and config next to the executable.
+          MinGW and SFML runtime DLLs are included.
+          EOF
+
+          cd release
+          zip -r ../ftree-windows-x64.zip ftree
+
+      - name: Upload Windows archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ftree-windows-x64
+          path: ftree-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs:
+      - build-linux
+      - build-windows
+
+    timeout-minutes: 15
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Linux archive
+        uses: actions/download-artifact@v4
+        with:
+          name: ftree-linux-x64
+          path: release
+
+      - name: Download Windows archive
+        uses: actions/download-artifact@v4
+        with:
+          name: ftree-windows-x64
+          path: release
+
+      - name: Verify archives
+        run: |
+          test -f release/ftree-linux-x64.tar.gz
+          test -f release/ftree-windows-x64.zip
+          ls -lh release
+
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: "Release ${{ github.ref_name }}"
           files: |
-            ftree-linux-x64.tar.gz
-            ftree-windows-x64.zip
+            release/ftree-linux-x64.tar.gz
+            release/ftree-windows-x64.zip
           draft: false
           prerelease: false
