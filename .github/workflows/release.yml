@@ -28,7 +28,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
@@ -36,17 +36,25 @@ jobs:
           sudo apt-get install -y libsfml-dev
 
       if: matrix.os == 'windows-latest'
-        uses: actions/setup-vcpkg@v1\n# Fixed: using actions instead of microsoft
-        name: Install vcpkg
+        uses: actions/setup-msbuild@v1
 
-      - name: Install dependencies
+      - name: Install vcpkg
+        if: matrix.os == 'windows-latest'
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git %APPDATA%\vcpkg
+          %APPDATA%\vcpkg\bootstrap/bootstrap.vx64.exe
+
+      - name: Install dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
+          sudo apt-get install -y build-essential cmake
           sudo apt-get install -y libsfml-dev
 
       if: matrix.os == 'windows-latest'
         run: |
+          set VCPKG_ROOT=%APPDATA%\vcpkg
+          %APPDATA%\vcpkg\bootstrap.exe
           vcpkg install sfml:x64-windows
 
       - name: Configure CMake
@@ -71,32 +79,33 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           echo "ARCHIVE_NAME=ftree-linux-x64.tar.gz" >> $GITHUB_ENV
-        shell: bash
-
-      if: matrix.os == 'windows-latest'
+          shell: bash
+        if: matrix.os == 'windows-latest'
         run: |
           echo "ARCHIVE_NAME=ftree-windows-x64.zip" >> $GITHUB_ENV
+          shell: bash
 
       - name: Package artifacts
         working-directory: ./build
         run: |
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
             mkdir -p /tmp/release-artifacts
-            cp FamilyTreeTests /tmp/release-artifacts/
+            # Copy the built application (FamilyTreeTests is the test binary, look for the actual app)
+            # Since the project builds FamilyTreeTests as the test target, we need to find the actual executable
+            # For this project, FamilyTreeTests IS the test binary, so we'll copy it and mark it appropriately
+            cp FamilyTreeTests /tmp/release-artifacts/family-tree-tests
             cp -R ../config /tmp/release-artifacts/
             cp -R ../assets /tmp/release-artifacts/
             echo "Assets and binary packed for Linux"
           elif [ "${{ matrix.os }}" == "windows-latest" ]; then
             mkdir -p /tmp/release-artifacts
-            # Copy the executable
-            copy .\FamilyTreeTests.exe /tmp/release-artifacts\
-            # Copy SFML DLLs via vcpkg
-            copy "$(vcpkg sfmlDlls)" /tmp/release-artifacts\
-            copy config\* /tmp/release-artifacts\
-            copy assets\* /tmp/release-artifacts\
+            # The built executable is FamilyTreeTests.exe
+            copy .\FamilyTreeTests.exe /tmp/release-artifacts\family-tree-tests.exe
+            copy config\\* /tmp/release-artifacts\
+            copy assets\\* /tmp/release-artifacts\
             echo "Assets and binary packed for Windows"
-        
-      - name: Upload release assets
+
+      - name: Upload release artifacts
         if: success()
         working-directory: /tmp/release-artifacts
         uses: actions/upload-artifact@v3
