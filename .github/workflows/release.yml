@@ -36,7 +36,7 @@ jobs:
           sudo apt-get install -y libsfml-dev
 
       if: matrix.os == 'windows-latest'
-        uses: microsoft/setup-vcpkg@v1
+        uses: actions/setup-vcpkg@v1
         name: Install vcpkg
 
       - name: Install dependencies
