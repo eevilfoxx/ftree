@@ -5,7 +5,6 @@
 #include "domain/World.hpp"
 #include <vector>
 
-
 namespace ftree::presentation {
 
 class WorldPresentation {
@@ -21,6 +20,13 @@ public:
 
     // Get family members
     static std::vector<PersonId> getFamilyMembers(const ftree::domain::World& world, FamilyId familyId);
-};
 
-} // namespace ftree::presentation
+    // Get person data for display
+    static PersonDisplay getPersonData(domain::PersonId id);
+
+    // Get person data for display
+    static PersonDisplay getPersonData(domain::PersonId id);
+    // Get person data for display
+    static PersonDisplay getPersonData(domain::PersonId id);
+    // Get person data for display
+    static PersonDisplay getPersonData(domain::PersonId id);
