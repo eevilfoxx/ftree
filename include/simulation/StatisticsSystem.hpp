@@ -11,3 +11,5 @@ public:
     static void printStatistics(int year, int population, int families,
                                 int children, int adults, int elders);
 };
+
+}

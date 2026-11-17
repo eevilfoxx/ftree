@@ -16,3 +16,5 @@ public:
     // Kill a specific person (marks dead, preserves genealogy)
     static void killPerson(World& world, PersonId id);
 };
+
+}

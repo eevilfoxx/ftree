@@ -19,3 +19,6 @@ public:
     // Reset pregnancy state after birth
     static void resetPregnancy(World& world, PersonId motherId);
 };
+
+}
+} // namespace ftree::simulation

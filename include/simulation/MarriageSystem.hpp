@@ -18,3 +18,5 @@ public:
     // Get maximum person age
     static int getMaxPersonAge();
 };
+
+}
