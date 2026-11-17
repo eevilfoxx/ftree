@@ -56,13 +56,17 @@ if(SFML_FOUND)
     # SFML 2.x packages expose either namespaced or legacy target names,
     # depending on the distributor/package manager.
     foreach(component Graphics Window System)
+        string(TOLOWER "${component}" component_lower)
+
         if(TARGET SFML::${component})
             list(APPEND SFML_LINK_TARGETS SFML::${component})
-        elseif(TARGET sfml-${component})
-            string(TOLOWER "${component}" component_lower)
+        elseif(TARGET sfml-${component_lower})
             list(APPEND SFML_LINK_TARGETS sfml-${component_lower})
         else()
-            message(FATAL_ERROR "SFML was found, but target for ${component} is missing")
+            message(FATAL_ERROR
+                "SFML was found, but target for ${component} is missing. "
+                "Available SFML targets: ${SFML_LINK_TARGETS}"
+            )
         endif()
     endforeach()
 
