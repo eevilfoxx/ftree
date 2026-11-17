@@ -135,8 +135,8 @@ jobs:
             throw "pkg-config is not executable"
           }
 
-          $env:PKGCONFIG = $pkgConfig
           $env:PKG_CONFIG = $pkgConfig
+          $env:VCPKG_KEEP_ENV_VARS = "PKG_CONFIG"
           $env:PATH = "$msysBin;$env:PATH"
 
           # ilammy/msvc-dev-cmd may expose Visual Studio's bundled vcpkg.
