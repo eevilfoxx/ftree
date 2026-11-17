@@ -32,8 +32,8 @@ public:
     void update(std::shared_ptr<Person> person) override {
         std::lock_guard<std::mutex> lock(mutex);
         if (person) {
-        persons[person->getUuid()] = person;
-    }
+            persons[person->getUuid()] = person;
+        }
     }
     
     std::vector<std::shared_ptr<Person>> getAll() override {
