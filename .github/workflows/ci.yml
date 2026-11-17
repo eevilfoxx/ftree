@@ -110,6 +110,9 @@ jobs:
 
           & $pkgConfig --version
           "PKG_CONFIG=$pkgConfig" | Out-File -FilePath $env:GITHUB_ENV -Append
+          $pkgDir = Split-Path -Parent $pkgConfig
+          "$pkgDir" | Out-File -FilePath $env:GITHUB_PATH -Append
+
 
       
       # ----------------------------------------
@@ -137,7 +140,22 @@ jobs:
       - name: Install SFML and GoogleTest
         shell: pwsh
         run: |
+          # ilammy/msvc-dev-cmd sets VCPKG_ROOT to the Visual Studio bundled vcpkg,
+          # which conflicts with our checked-out vcpkg. Unset it so vcpkg uses its own root.
+          if ($env:VCPKG_ROOT) { $env:VCPKG_ROOT = $null }
+
+          # Ensure vcpkg finds pkg-config (installed via msys2) instead of trying to
+          # download pkgconf from MSYS2 mirrors that return 404.
+          if (-not $env:PKG_CONFIG) {
+            $pkgConfig = Join-Path $env:MSYS2_LOCATION "ucrt64\\bin\\pkg-config.exe"
+            if (-not (Test-Path $pkgConfig)) {
+              $pkgConfig = Join-Path $env:MSYS2_LOCATION "ucrt64\\bin\\pkgconf.exe"
+            }
+            $env:PKG_CONFIG = $pkgConfig
+          }
+
           & "$env:RUNNER_TEMP\vcpkg\vcpkg.exe" install `
+            --vcpkg-root "$env:RUNNER_TEMP\vcpkg" `
             sfml:x64-windows `
             gtest:x64-windows
 
