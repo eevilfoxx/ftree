@@ -95,6 +95,51 @@ rebuild_cache:
 rebuild_cache/fast: rebuild_cache
 .PHONY : rebuild_cache/fast
 
+# Special rule for the target list_install_components
+list_install_components:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Available install components are: \"Unspecified\""
+.PHONY : list_install_components
+
+# Special rule for the target list_install_components
+list_install_components/fast: list_install_components
+.PHONY : list_install_components/fast
+
+# Special rule for the target install
+install: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install
+
+# Special rule for the target install
+install/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install/fast
+
+# Special rule for the target install/local
+install/local: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local
+
+# Special rule for the target install/local
+install/local/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local/fast
+
+# Special rule for the target install/strip
+install/strip: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip
+
+# Special rule for the target install/strip
+install/strip/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip/fast
+
 # The main all target
 all: cmake_check_build_system
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/evilfox/ftree/build/CMakeFiles /home/evilfox/ftree/build//CMakeFiles/progress.marks
@@ -127,6 +172,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named FamilyTree
+
+# Build rule for target.
+FamilyTree: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 FamilyTree
+.PHONY : FamilyTree
+
+# fast build rule for target.
+FamilyTree/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/build
+.PHONY : FamilyTree/fast
+
+#=============================================================================
 # Target rules for targets named FamilyTreeTests
 
 # Build rule for target.
@@ -139,11 +197,36 @@ FamilyTreeTests/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/build
 .PHONY : FamilyTreeTests/fast
 
+src/application/Application.o: src/application/Application.cpp.o
+.PHONY : src/application/Application.o
+
+# target to build an object file
+src/application/Application.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/application/Application.cpp.o
+.PHONY : src/application/Application.cpp.o
+
+src/application/Application.i: src/application/Application.cpp.i
+.PHONY : src/application/Application.i
+
+# target to preprocess a source file
+src/application/Application.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/application/Application.cpp.i
+.PHONY : src/application/Application.cpp.i
+
+src/application/Application.s: src/application/Application.cpp.s
+.PHONY : src/application/Application.s
+
+# target to generate assembly for a file
+src/application/Application.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/application/Application.cpp.s
+.PHONY : src/application/Application.cpp.s
+
 src/core/Config.o: src/core/Config.cpp.o
 .PHONY : src/core/Config.o
 
 # target to build an object file
 src/core/Config.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/core/Config.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/core/Config.cpp.o
 .PHONY : src/core/Config.cpp.o
 
@@ -152,6 +235,7 @@ src/core/Config.i: src/core/Config.cpp.i
 
 # target to preprocess a source file
 src/core/Config.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/core/Config.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/core/Config.cpp.i
 .PHONY : src/core/Config.cpp.i
 
@@ -160,6 +244,7 @@ src/core/Config.s: src/core/Config.cpp.s
 
 # target to generate assembly for a file
 src/core/Config.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/core/Config.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/core/Config.cpp.s
 .PHONY : src/core/Config.cpp.s
 
@@ -168,6 +253,7 @@ src/core/EventDispatcher.o: src/core/EventDispatcher.cpp.o
 
 # target to build an object file
 src/core/EventDispatcher.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/core/EventDispatcher.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/core/EventDispatcher.cpp.o
 .PHONY : src/core/EventDispatcher.cpp.o
 
@@ -176,6 +262,7 @@ src/core/EventDispatcher.i: src/core/EventDispatcher.cpp.i
 
 # target to preprocess a source file
 src/core/EventDispatcher.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/core/EventDispatcher.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/core/EventDispatcher.cpp.i
 .PHONY : src/core/EventDispatcher.cpp.i
 
@@ -184,6 +271,7 @@ src/core/EventDispatcher.s: src/core/EventDispatcher.cpp.s
 
 # target to generate assembly for a file
 src/core/EventDispatcher.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/core/EventDispatcher.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/core/EventDispatcher.cpp.s
 .PHONY : src/core/EventDispatcher.cpp.s
 
@@ -192,6 +280,7 @@ src/core/RandomEngine.o: src/core/RandomEngine.cpp.o
 
 # target to build an object file
 src/core/RandomEngine.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/core/RandomEngine.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/core/RandomEngine.cpp.o
 .PHONY : src/core/RandomEngine.cpp.o
 
@@ -200,6 +289,7 @@ src/core/RandomEngine.i: src/core/RandomEngine.cpp.i
 
 # target to preprocess a source file
 src/core/RandomEngine.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/core/RandomEngine.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/core/RandomEngine.cpp.i
 .PHONY : src/core/RandomEngine.cpp.i
 
@@ -208,6 +298,7 @@ src/core/RandomEngine.s: src/core/RandomEngine.cpp.s
 
 # target to generate assembly for a file
 src/core/RandomEngine.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/core/RandomEngine.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/core/RandomEngine.cpp.s
 .PHONY : src/core/RandomEngine.cpp.s
 
@@ -216,6 +307,7 @@ src/entities/Family.o: src/entities/Family.cpp.o
 
 # target to build an object file
 src/entities/Family.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/entities/Family.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/entities/Family.cpp.o
 .PHONY : src/entities/Family.cpp.o
 
@@ -224,6 +316,7 @@ src/entities/Family.i: src/entities/Family.cpp.i
 
 # target to preprocess a source file
 src/entities/Family.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/entities/Family.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/entities/Family.cpp.i
 .PHONY : src/entities/Family.cpp.i
 
@@ -232,6 +325,7 @@ src/entities/Family.s: src/entities/Family.cpp.s
 
 # target to generate assembly for a file
 src/entities/Family.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/entities/Family.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/entities/Family.cpp.s
 .PHONY : src/entities/Family.cpp.s
 
@@ -240,6 +334,7 @@ src/entities/Person.o: src/entities/Person.cpp.o
 
 # target to build an object file
 src/entities/Person.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/entities/Person.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/entities/Person.cpp.o
 .PHONY : src/entities/Person.cpp.o
 
@@ -248,6 +343,7 @@ src/entities/Person.i: src/entities/Person.cpp.i
 
 # target to preprocess a source file
 src/entities/Person.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/entities/Person.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/entities/Person.cpp.i
 .PHONY : src/entities/Person.cpp.i
 
@@ -256,14 +352,40 @@ src/entities/Person.s: src/entities/Person.cpp.s
 
 # target to generate assembly for a file
 src/entities/Person.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/entities/Person.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/entities/Person.cpp.s
 .PHONY : src/entities/Person.cpp.s
+
+src/main.o: src/main.cpp.o
+.PHONY : src/main.o
+
+# target to build an object file
+src/main.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/main.cpp.o
+.PHONY : src/main.cpp.o
+
+src/main.i: src/main.cpp.i
+.PHONY : src/main.i
+
+# target to preprocess a source file
+src/main.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/main.cpp.i
+.PHONY : src/main.cpp.i
+
+src/main.s: src/main.cpp.s
+.PHONY : src/main.s
+
+# target to generate assembly for a file
+src/main.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/main.cpp.s
+.PHONY : src/main.cpp.s
 
 src/managers/FamilyManager.o: src/managers/FamilyManager.cpp.o
 .PHONY : src/managers/FamilyManager.o
 
 # target to build an object file
 src/managers/FamilyManager.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/managers/FamilyManager.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/managers/FamilyManager.cpp.o
 .PHONY : src/managers/FamilyManager.cpp.o
 
@@ -272,6 +394,7 @@ src/managers/FamilyManager.i: src/managers/FamilyManager.cpp.i
 
 # target to preprocess a source file
 src/managers/FamilyManager.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/managers/FamilyManager.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/managers/FamilyManager.cpp.i
 .PHONY : src/managers/FamilyManager.cpp.i
 
@@ -280,6 +403,7 @@ src/managers/FamilyManager.s: src/managers/FamilyManager.cpp.s
 
 # target to generate assembly for a file
 src/managers/FamilyManager.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/managers/FamilyManager.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/managers/FamilyManager.cpp.s
 .PHONY : src/managers/FamilyManager.cpp.s
 
@@ -288,6 +412,7 @@ src/managers/NameManager.o: src/managers/NameManager.cpp.o
 
 # target to build an object file
 src/managers/NameManager.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/managers/NameManager.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/managers/NameManager.cpp.o
 .PHONY : src/managers/NameManager.cpp.o
 
@@ -296,6 +421,7 @@ src/managers/NameManager.i: src/managers/NameManager.cpp.i
 
 # target to preprocess a source file
 src/managers/NameManager.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/managers/NameManager.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/managers/NameManager.cpp.i
 .PHONY : src/managers/NameManager.cpp.i
 
@@ -304,6 +430,7 @@ src/managers/NameManager.s: src/managers/NameManager.cpp.s
 
 # target to generate assembly for a file
 src/managers/NameManager.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/managers/NameManager.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/managers/NameManager.cpp.s
 .PHONY : src/managers/NameManager.cpp.s
 
@@ -312,6 +439,7 @@ src/managers/PopulationManager.o: src/managers/PopulationManager.cpp.o
 
 # target to build an object file
 src/managers/PopulationManager.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/managers/PopulationManager.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/managers/PopulationManager.cpp.o
 .PHONY : src/managers/PopulationManager.cpp.o
 
@@ -320,6 +448,7 @@ src/managers/PopulationManager.i: src/managers/PopulationManager.cpp.i
 
 # target to preprocess a source file
 src/managers/PopulationManager.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/managers/PopulationManager.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/managers/PopulationManager.cpp.i
 .PHONY : src/managers/PopulationManager.cpp.i
 
@@ -328,14 +457,43 @@ src/managers/PopulationManager.s: src/managers/PopulationManager.cpp.s
 
 # target to generate assembly for a file
 src/managers/PopulationManager.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/managers/PopulationManager.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/managers/PopulationManager.cpp.s
 .PHONY : src/managers/PopulationManager.cpp.s
+
+src/presentation/WorldPresentation.o: src/presentation/WorldPresentation.cpp.o
+.PHONY : src/presentation/WorldPresentation.o
+
+# target to build an object file
+src/presentation/WorldPresentation.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/presentation/WorldPresentation.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/presentation/WorldPresentation.cpp.o
+.PHONY : src/presentation/WorldPresentation.cpp.o
+
+src/presentation/WorldPresentation.i: src/presentation/WorldPresentation.cpp.i
+.PHONY : src/presentation/WorldPresentation.i
+
+# target to preprocess a source file
+src/presentation/WorldPresentation.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/presentation/WorldPresentation.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/presentation/WorldPresentation.cpp.i
+.PHONY : src/presentation/WorldPresentation.cpp.i
+
+src/presentation/WorldPresentation.s: src/presentation/WorldPresentation.cpp.s
+.PHONY : src/presentation/WorldPresentation.s
+
+# target to generate assembly for a file
+src/presentation/WorldPresentation.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/presentation/WorldPresentation.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/presentation/WorldPresentation.cpp.s
+.PHONY : src/presentation/WorldPresentation.cpp.s
 
 src/services/AgingService.o: src/services/AgingService.cpp.o
 .PHONY : src/services/AgingService.o
 
 # target to build an object file
 src/services/AgingService.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/AgingService.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/AgingService.cpp.o
 .PHONY : src/services/AgingService.cpp.o
 
@@ -344,6 +502,7 @@ src/services/AgingService.i: src/services/AgingService.cpp.i
 
 # target to preprocess a source file
 src/services/AgingService.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/AgingService.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/AgingService.cpp.i
 .PHONY : src/services/AgingService.cpp.i
 
@@ -352,6 +511,7 @@ src/services/AgingService.s: src/services/AgingService.cpp.s
 
 # target to generate assembly for a file
 src/services/AgingService.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/AgingService.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/AgingService.cpp.s
 .PHONY : src/services/AgingService.cpp.s
 
@@ -360,6 +520,7 @@ src/services/BirthService.o: src/services/BirthService.cpp.o
 
 # target to build an object file
 src/services/BirthService.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/BirthService.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/BirthService.cpp.o
 .PHONY : src/services/BirthService.cpp.o
 
@@ -368,6 +529,7 @@ src/services/BirthService.i: src/services/BirthService.cpp.i
 
 # target to preprocess a source file
 src/services/BirthService.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/BirthService.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/BirthService.cpp.i
 .PHONY : src/services/BirthService.cpp.i
 
@@ -376,6 +538,7 @@ src/services/BirthService.s: src/services/BirthService.cpp.s
 
 # target to generate assembly for a file
 src/services/BirthService.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/BirthService.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/BirthService.cpp.s
 .PHONY : src/services/BirthService.cpp.s
 
@@ -384,6 +547,7 @@ src/services/DeathService.o: src/services/DeathService.cpp.o
 
 # target to build an object file
 src/services/DeathService.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/DeathService.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/DeathService.cpp.o
 .PHONY : src/services/DeathService.cpp.o
 
@@ -392,6 +556,7 @@ src/services/DeathService.i: src/services/DeathService.cpp.i
 
 # target to preprocess a source file
 src/services/DeathService.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/DeathService.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/DeathService.cpp.i
 .PHONY : src/services/DeathService.cpp.i
 
@@ -400,6 +565,7 @@ src/services/DeathService.s: src/services/DeathService.cpp.s
 
 # target to generate assembly for a file
 src/services/DeathService.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/DeathService.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/DeathService.cpp.s
 .PHONY : src/services/DeathService.cpp.s
 
@@ -408,6 +574,7 @@ src/services/MarriageService.o: src/services/MarriageService.cpp.o
 
 # target to build an object file
 src/services/MarriageService.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/MarriageService.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/MarriageService.cpp.o
 .PHONY : src/services/MarriageService.cpp.o
 
@@ -416,6 +583,7 @@ src/services/MarriageService.i: src/services/MarriageService.cpp.i
 
 # target to preprocess a source file
 src/services/MarriageService.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/MarriageService.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/MarriageService.cpp.i
 .PHONY : src/services/MarriageService.cpp.i
 
@@ -424,6 +592,7 @@ src/services/MarriageService.s: src/services/MarriageService.cpp.s
 
 # target to generate assembly for a file
 src/services/MarriageService.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/MarriageService.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/MarriageService.cpp.s
 .PHONY : src/services/MarriageService.cpp.s
 
@@ -432,6 +601,7 @@ src/services/PregnancyService.o: src/services/PregnancyService.cpp.o
 
 # target to build an object file
 src/services/PregnancyService.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/PregnancyService.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/PregnancyService.cpp.o
 .PHONY : src/services/PregnancyService.cpp.o
 
@@ -440,6 +610,7 @@ src/services/PregnancyService.i: src/services/PregnancyService.cpp.i
 
 # target to preprocess a source file
 src/services/PregnancyService.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/PregnancyService.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/PregnancyService.cpp.i
 .PHONY : src/services/PregnancyService.cpp.i
 
@@ -448,6 +619,7 @@ src/services/PregnancyService.s: src/services/PregnancyService.cpp.s
 
 # target to generate assembly for a file
 src/services/PregnancyService.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/services/PregnancyService.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/services/PregnancyService.cpp.s
 .PHONY : src/services/PregnancyService.cpp.s
 
@@ -456,6 +628,7 @@ src/utils/StatisticsService.o: src/utils/StatisticsService.cpp.o
 
 # target to build an object file
 src/utils/StatisticsService.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/utils/StatisticsService.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/utils/StatisticsService.cpp.o
 .PHONY : src/utils/StatisticsService.cpp.o
 
@@ -464,6 +637,7 @@ src/utils/StatisticsService.i: src/utils/StatisticsService.cpp.i
 
 # target to preprocess a source file
 src/utils/StatisticsService.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/utils/StatisticsService.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/utils/StatisticsService.cpp.i
 .PHONY : src/utils/StatisticsService.cpp.i
 
@@ -472,8 +646,177 @@ src/utils/StatisticsService.s: src/utils/StatisticsService.cpp.s
 
 # target to generate assembly for a file
 src/utils/StatisticsService.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/utils/StatisticsService.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/src/utils/StatisticsService.cpp.s
 .PHONY : src/utils/StatisticsService.cpp.s
+
+src/vizualization/Camera.o: src/vizualization/Camera.cpp.o
+.PHONY : src/vizualization/Camera.o
+
+# target to build an object file
+src/vizualization/Camera.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/vizualization/Camera.cpp.o
+.PHONY : src/vizualization/Camera.cpp.o
+
+src/vizualization/Camera.i: src/vizualization/Camera.cpp.i
+.PHONY : src/vizualization/Camera.i
+
+# target to preprocess a source file
+src/vizualization/Camera.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/vizualization/Camera.cpp.i
+.PHONY : src/vizualization/Camera.cpp.i
+
+src/vizualization/Camera.s: src/vizualization/Camera.cpp.s
+.PHONY : src/vizualization/Camera.s
+
+# target to generate assembly for a file
+src/vizualization/Camera.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/vizualization/Camera.cpp.s
+.PHONY : src/vizualization/Camera.cpp.s
+
+src/vizualization/Scene.o: src/vizualization/Scene.cpp.o
+.PHONY : src/vizualization/Scene.o
+
+# target to build an object file
+src/vizualization/Scene.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/vizualization/Scene.cpp.o
+.PHONY : src/vizualization/Scene.cpp.o
+
+src/vizualization/Scene.i: src/vizualization/Scene.cpp.i
+.PHONY : src/vizualization/Scene.i
+
+# target to preprocess a source file
+src/vizualization/Scene.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/vizualization/Scene.cpp.i
+.PHONY : src/vizualization/Scene.cpp.i
+
+src/vizualization/Scene.s: src/vizualization/Scene.cpp.s
+.PHONY : src/vizualization/Scene.s
+
+# target to generate assembly for a file
+src/vizualization/Scene.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/vizualization/Scene.cpp.s
+.PHONY : src/vizualization/Scene.cpp.s
+
+src/vizualization/UI.o: src/vizualization/UI.cpp.o
+.PHONY : src/vizualization/UI.o
+
+# target to build an object file
+src/vizualization/UI.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/vizualization/UI.cpp.o
+.PHONY : src/vizualization/UI.cpp.o
+
+src/vizualization/UI.i: src/vizualization/UI.cpp.i
+.PHONY : src/vizualization/UI.i
+
+# target to preprocess a source file
+src/vizualization/UI.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/vizualization/UI.cpp.i
+.PHONY : src/vizualization/UI.cpp.i
+
+src/vizualization/UI.s: src/vizualization/UI.cpp.s
+.PHONY : src/vizualization/UI.s
+
+# target to generate assembly for a file
+src/vizualization/UI.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/vizualization/UI.cpp.s
+.PHONY : src/vizualization/UI.cpp.s
+
+src/vizualization/Visualizer.o: src/vizualization/Visualizer.cpp.o
+.PHONY : src/vizualization/Visualizer.o
+
+# target to build an object file
+src/vizualization/Visualizer.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/vizualization/Visualizer.cpp.o
+.PHONY : src/vizualization/Visualizer.cpp.o
+
+src/vizualization/Visualizer.i: src/vizualization/Visualizer.cpp.i
+.PHONY : src/vizualization/Visualizer.i
+
+# target to preprocess a source file
+src/vizualization/Visualizer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/vizualization/Visualizer.cpp.i
+.PHONY : src/vizualization/Visualizer.cpp.i
+
+src/vizualization/Visualizer.s: src/vizualization/Visualizer.cpp.s
+.PHONY : src/vizualization/Visualizer.s
+
+# target to generate assembly for a file
+src/vizualization/Visualizer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTree.dir/build.make CMakeFiles/FamilyTree.dir/src/vizualization/Visualizer.cpp.s
+.PHONY : src/vizualization/Visualizer.cpp.s
+
+tests/test_FamilyDisplay.o: tests/test_FamilyDisplay.cpp.o
+.PHONY : tests/test_FamilyDisplay.o
+
+# target to build an object file
+tests/test_FamilyDisplay.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/tests/test_FamilyDisplay.cpp.o
+.PHONY : tests/test_FamilyDisplay.cpp.o
+
+tests/test_FamilyDisplay.i: tests/test_FamilyDisplay.cpp.i
+.PHONY : tests/test_FamilyDisplay.i
+
+# target to preprocess a source file
+tests/test_FamilyDisplay.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/tests/test_FamilyDisplay.cpp.i
+.PHONY : tests/test_FamilyDisplay.cpp.i
+
+tests/test_FamilyDisplay.s: tests/test_FamilyDisplay.cpp.s
+.PHONY : tests/test_FamilyDisplay.s
+
+# target to generate assembly for a file
+tests/test_FamilyDisplay.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/tests/test_FamilyDisplay.cpp.s
+.PHONY : tests/test_FamilyDisplay.cpp.s
+
+tests/test_PersonDisplay.o: tests/test_PersonDisplay.cpp.o
+.PHONY : tests/test_PersonDisplay.o
+
+# target to build an object file
+tests/test_PersonDisplay.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/tests/test_PersonDisplay.cpp.o
+.PHONY : tests/test_PersonDisplay.cpp.o
+
+tests/test_PersonDisplay.i: tests/test_PersonDisplay.cpp.i
+.PHONY : tests/test_PersonDisplay.i
+
+# target to preprocess a source file
+tests/test_PersonDisplay.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/tests/test_PersonDisplay.cpp.i
+.PHONY : tests/test_PersonDisplay.cpp.i
+
+tests/test_PersonDisplay.s: tests/test_PersonDisplay.cpp.s
+.PHONY : tests/test_PersonDisplay.s
+
+# target to generate assembly for a file
+tests/test_PersonDisplay.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/tests/test_PersonDisplay.cpp.s
+.PHONY : tests/test_PersonDisplay.cpp.s
+
+tests/test_WorldPresentation.o: tests/test_WorldPresentation.cpp.o
+.PHONY : tests/test_WorldPresentation.o
+
+# target to build an object file
+tests/test_WorldPresentation.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/tests/test_WorldPresentation.cpp.o
+.PHONY : tests/test_WorldPresentation.cpp.o
+
+tests/test_WorldPresentation.i: tests/test_WorldPresentation.cpp.i
+.PHONY : tests/test_WorldPresentation.i
+
+# target to preprocess a source file
+tests/test_WorldPresentation.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/tests/test_WorldPresentation.cpp.i
+.PHONY : tests/test_WorldPresentation.cpp.i
+
+tests/test_WorldPresentation.s: tests/test_WorldPresentation.cpp.s
+.PHONY : tests/test_WorldPresentation.s
+
+# target to generate assembly for a file
+tests/test_WorldPresentation.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FamilyTreeTests.dir/build.make CMakeFiles/FamilyTreeTests.dir/tests/test_WorldPresentation.cpp.s
+.PHONY : tests/test_WorldPresentation.cpp.s
 
 tests/test_aging_service.o: tests/test_aging_service.cpp.o
 .PHONY : tests/test_aging_service.o
@@ -794,9 +1137,17 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... edit_cache"
+	@echo "... install"
+	@echo "... install/local"
+	@echo "... install/strip"
+	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... test"
+	@echo "... FamilyTree"
 	@echo "... FamilyTreeTests"
+	@echo "... src/application/Application.o"
+	@echo "... src/application/Application.i"
+	@echo "... src/application/Application.s"
 	@echo "... src/core/Config.o"
 	@echo "... src/core/Config.i"
 	@echo "... src/core/Config.s"
@@ -812,6 +1163,9 @@ help:
 	@echo "... src/entities/Person.o"
 	@echo "... src/entities/Person.i"
 	@echo "... src/entities/Person.s"
+	@echo "... src/main.o"
+	@echo "... src/main.i"
+	@echo "... src/main.s"
 	@echo "... src/managers/FamilyManager.o"
 	@echo "... src/managers/FamilyManager.i"
 	@echo "... src/managers/FamilyManager.s"
@@ -821,6 +1175,9 @@ help:
 	@echo "... src/managers/PopulationManager.o"
 	@echo "... src/managers/PopulationManager.i"
 	@echo "... src/managers/PopulationManager.s"
+	@echo "... src/presentation/WorldPresentation.o"
+	@echo "... src/presentation/WorldPresentation.i"
+	@echo "... src/presentation/WorldPresentation.s"
 	@echo "... src/services/AgingService.o"
 	@echo "... src/services/AgingService.i"
 	@echo "... src/services/AgingService.s"
@@ -839,6 +1196,27 @@ help:
 	@echo "... src/utils/StatisticsService.o"
 	@echo "... src/utils/StatisticsService.i"
 	@echo "... src/utils/StatisticsService.s"
+	@echo "... src/vizualization/Camera.o"
+	@echo "... src/vizualization/Camera.i"
+	@echo "... src/vizualization/Camera.s"
+	@echo "... src/vizualization/Scene.o"
+	@echo "... src/vizualization/Scene.i"
+	@echo "... src/vizualization/Scene.s"
+	@echo "... src/vizualization/UI.o"
+	@echo "... src/vizualization/UI.i"
+	@echo "... src/vizualization/UI.s"
+	@echo "... src/vizualization/Visualizer.o"
+	@echo "... src/vizualization/Visualizer.i"
+	@echo "... src/vizualization/Visualizer.s"
+	@echo "... tests/test_FamilyDisplay.o"
+	@echo "... tests/test_FamilyDisplay.i"
+	@echo "... tests/test_FamilyDisplay.s"
+	@echo "... tests/test_PersonDisplay.o"
+	@echo "... tests/test_PersonDisplay.i"
+	@echo "... tests/test_PersonDisplay.s"
+	@echo "... tests/test_WorldPresentation.o"
+	@echo "... tests/test_WorldPresentation.i"
+	@echo "... tests/test_WorldPresentation.s"
 	@echo "... tests/test_aging_service.o"
 	@echo "... tests/test_aging_service.i"
 	@echo "... tests/test_aging_service.s"

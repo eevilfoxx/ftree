@@ -34,6 +34,7 @@ set(DOMAIN_SOURCES
     src/services/MarriageService.cpp
     src/services/PregnancyService.cpp
     src/utils/StatisticsService.cpp
+        src/presentation/WorldPresentation.cpp
 )
 
 set(VIZ_SOURCES
@@ -102,6 +103,9 @@ if(BUILD_TESTING)
         tests/test_marriage_service.cpp
         tests/test_statistics_service.cpp
         tests/test_formulas.cpp
+        tests/test_PersonDisplay.cpp
+        tests/test_FamilyDisplay.cpp
+        tests/test_WorldPresentation.cpp
         # Исходные файлы предметной области (без SFML и без main)
         src/core/RandomEngine.cpp
         src/entities/Person.cpp
@@ -117,6 +121,7 @@ if(BUILD_TESTING)
         src/services/PregnancyService.cpp
         src/services/BirthService.cpp
         src/utils/StatisticsService.cpp
+        src/presentation/WorldPresentation.cpp
     )
 
     target_include_directories(FamilyTreeTests PRIVATE include)
