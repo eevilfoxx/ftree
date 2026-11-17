@@ -110,15 +110,33 @@ jobs:
           }
 
       # Кэш готовых бинарных пакетов vcpkg.
-      # При повторных запусках зависимости не потребуется собирать заново,
-      # если их ABI и параметры сборки не изменились.
+      # Версия ключа v2 позволяет отказаться от возможного старого пустого кэша.
       - name: Cache vcpkg binaries
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/vcpkg-binary-cache
-          key: windows-vcpkg-2024.04.26-x64-windows
-          restore-keys: |
-            windows-vcpkg-2024.04.26-x64-windows
+          key: windows-vcpkg-binaries-v2-2024.04.26-x64-windows
+
+      - name: Check vcpkg cache before installation
+        shell: pwsh
+        run: |
+          $cachePath = Join-Path $env:RUNNER_TEMP "vcpkg-binary-cache"
+
+          if (-not (Test-Path $cachePath)) {
+            New-Item -ItemType Directory -Path $cachePath -Force | Out-Null
+          }
+
+          $files = @(Get-ChildItem $cachePath -Recurse -File)
+          $size = ($files | Measure-Object -Property Length -Sum).Sum
+
+          if ($null -eq $size) {
+            $size = 0
+          }
+
+          Write-Host "===== VCPKG BINARY CACHE BEFORE INSTALLATION ====="
+          Write-Host "Cache path: $cachePath"
+          Write-Host "Cache files: $($files.Count)"
+          Write-Host "Cache size: $([math]::Round($size / 1MB, 2)) MB"
 
       - name: Install SFML and GoogleTest
         shell: pwsh
@@ -127,6 +145,7 @@ jobs:
         run: |
           $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
           $msysBin = Join-Path $env:MSYS2_LOCATION "ucrt64\bin"
+          $cachePath = Join-Path $env:RUNNER_TEMP "vcpkg-binary-cache"
 
           # vcpkg's PKGCONFIG acquisition helper checks ENV{PKG_CONFIG}.
           $pkgConfig = Join-Path $msysBin "pkg-config.exe"
@@ -159,7 +178,13 @@ jobs:
           $env:VCPKG_ROOT = $vcpkgRoot
 
           # Enable local binary cache.
-          $env:VCPKG_BINARY_SOURCES = "clear;files,$env:RUNNER_TEMP/vcpkg-binary-cache,readwrite"
+          $env:VCPKG_BINARY_SOURCES = "clear;files,$cachePath,readwrite"
+
+          Write-Host "===== VCPKG CONFIGURATION ====="
+          Write-Host "VCPKG_ROOT: $env:VCPKG_ROOT"
+          Write-Host "VCPKG_BINARY_SOURCES: $env:VCPKG_BINARY_SOURCES"
+          Write-Host "PKG_CONFIG: $env:PKG_CONFIG"
+          Write-Host "CMAKE_POLICY_VERSION_MINIMUM: $env:CMAKE_POLICY_VERSION_MINIMUM"
 
           & (Join-Path $vcpkgRoot "vcpkg.exe") install `
             --vcpkg-root $vcpkgRoot `
@@ -185,6 +210,22 @@ jobs:
           }
 
           & (Join-Path $vcpkgRoot "vcpkg.exe") list
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to list installed vcpkg packages"
+          }
+
+          Write-Host "===== VCPKG BINARY CACHE AFTER INSTALLATION ====="
+
+          $files = @(Get-ChildItem $cachePath -Recurse -File)
+          $size = ($files | Measure-Object -Property Length -Sum).Sum
+
+          if ($null -eq $size) {
+            $size = 0
+          }
+
+          Write-Host "Cache files: $($files.Count)"
+          Write-Host "Cache size: $([math]::Round($size / 1MB, 2)) MB"
 
       - name: Configure CMake
         shell: pwsh
