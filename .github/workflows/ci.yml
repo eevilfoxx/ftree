@@ -135,6 +135,7 @@ jobs:
             throw "pkg-config is not executable"
           }
 
+          $env:PKGCONFIG = $pkgConfig
           $env:PKG_CONFIG = $pkgConfig
           $env:PATH = "$msysBin;$env:PATH"
 
