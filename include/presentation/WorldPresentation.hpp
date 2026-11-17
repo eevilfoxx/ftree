@@ -16,16 +16,13 @@ public:
     static std::vector<FamilyDisplay> getAllFamilies(const ftree::domain::World& world);
 
     // Get people living
-    static std::vector<PersonId> getLivingPeopleIds(const ftree::domain::World& world);
+    static std::vector<domain::PersonId> getLivingPeopleIds(const ftree::domain::World& world);
 
     // Get family members
-    static std::vector<PersonId> getFamilyMembers(const ftree::domain::World& world, FamilyId familyId);
+    static std::vector<domain::PersonId> getFamilyMembers(const ftree::domain::World& world, domain::FamilyId familyId);
 
     // Get person data for display
-    static PersonDisplay getPersonData(domain::PersonId id);
-
-    // Get person data for display
-    static PersonDisplay getPersonData(domain::PersonId id);
+    static PersonDisplay getPersonData(const ftree::domain::World& world,domain::PersonId id);
 };
 
 }

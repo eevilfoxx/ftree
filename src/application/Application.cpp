@@ -154,7 +154,7 @@ int Application::getSpeed() const {
 }
 
 presentation::PersonDisplay Application::getPersonData(domain::PersonId id) const {
-    return presentation_->getPersonData(id);
+    return presentation::WorldPresentation::getPersonData(*world_, id);
 }
 
 void Application::getStatistics(int& population, int& families,

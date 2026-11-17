@@ -1,6 +1,7 @@
 #include "presentation/WorldPresentation.hpp"
 #include "domain/World.hpp"
-#include <algorithm>
+#include <stdexcept>
+#include <string>
 
 namespace ftree::presentation {
 
@@ -60,4 +61,37 @@ std::vector<PersonId> WorldPresentation::getLivingPeopleIds(const ftree::domain:
 
 std::vector<PersonId> WorldPresentation::getFamilyMembers(const ftree::domain::World& world, FamilyId familyId) {
     return world.getFamilyMembers(familyId);
+}
+
+PersonDisplay WorldPresentation::getPersonData(
+    const ftree::domain::World& world,
+    domain::PersonId id
+) {
+    const auto person = world.getPerson(id);
+
+    if (!person.has_value()) {
+        throw std::out_of_range(
+            "Person with ID " + std::to_string(id) + " does not exist"
+        );
+    }
+
+    const auto& data = person.value();
+
+    PersonDisplay result;
+    result.id = data.id;
+    result.name = data.name;
+    result.displayName = data.name + " " + std::to_string(data.age) + " yrs";
+    result.isMale = data.gender == ftree::domain::Gender::Male;
+    result.isAlive = data.alive;
+    result.isPregnant = data.pregnant;
+    result.isDeceased = !data.alive;
+    result.motherId = data.motherId;
+    result.fatherId = data.fatherId;
+    result.familyId = data.familyId;
+    result.generationLevel = 0;
+    result.depth = 0;
+
+    return result;
+}
+
 }
