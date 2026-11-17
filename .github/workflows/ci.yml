@@ -1,15 +1,18 @@
 name: CI
 
+# Запускать CI на любой ветке, кроме веток для документации и gh-pages
 on:
   push:
-    branches:
-      - main
-      - develop
+    branches-ignore:
+      - 'docs/**'
+      - 'gh-pages'
+      - 'dependabot/**'
 
   pull_request:
-    branches:
-      - main
-      - develop
+    branches-ignore:
+      - 'docs/**'
+      - 'gh-pages'
+      - 'dependabot/**'
 
   workflow_dispatch:
 
