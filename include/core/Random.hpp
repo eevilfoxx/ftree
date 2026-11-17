@@ -27,7 +27,7 @@ public:
     std::mt19937& engine() { return engine_; }
     
     // Get current seed
-    unsigned seed() { return engine_.seed(); }
+    void seed() { return engine_.seed(); }
     
 private:
     std::mt19937 engine_;
