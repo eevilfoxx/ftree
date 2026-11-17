@@ -11,15 +11,15 @@ int BirthSystem::processBirths(World& world) {
         if (person.isPregnant) {
             // Give birth - create child and add to family
             PersonId childId = world.createPerson("Newborn", 
-                mother.isPregnant ? ftree::domain::Gender::Female : ftree::domain::Gender::Male, 0);
+                person.isPregnant ? ftree::domain::Gender::Female : ftree::domain::Gender::Male, 0);
             
-            if (mother.familyId > 0) {
-                auto& family = world.getFamilyRef(mother.familyId);
+            if (person.familyId > 0) {
+                auto& family = world.getFamilyRef(person.familyId);
                 family.addChild(childId);
             }
             
             // Reset pregnancy
-            mother.setPregnant(false);
+            person.setPregnant(false);
             births++;
         }
     }
