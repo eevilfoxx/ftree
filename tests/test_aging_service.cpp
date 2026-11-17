@@ -17,7 +17,7 @@ protected:
         personRepo = std::make_shared<MemoryPersonRepository>();
         eventDispatcher = std::make_shared<EventDispatcher>();
         popManager = std::make_shared<PopulationManager>(personRepo, eventDispatcher);
-        agingService = std::make_shared<AgingService>(popManager);
+        agingService = std::make_shared<AgingService>(popManager, personRepo);
     }
 };
 
