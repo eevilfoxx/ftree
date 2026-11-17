@@ -21,8 +21,8 @@ find_package(SFML 2.5 COMPONENTS graphics window system CONFIG QUIET)
 
 set(DOMAIN_SOURCES
     src/core/RandomEngine.cpp
-    src/entites/Person.cpp
-    src/entites/Family.cpp
+    src/entities/Person.cpp
+    src/entities/Family.cpp
     src/core/Config.cpp
     src/core/EventDispatcher.cpp
     src/managers/FamilyManager.cpp
@@ -103,8 +103,8 @@ if(BUILD_TESTING)
         tests/test_formulas.cpp
         # Исходные файлы предметной области (без SFML и без main)
         src/core/RandomEngine.cpp
-        src/entites/Person.cpp
-        src/entites/Family.cpp
+        src/entities/Person.cpp
+        src/entities/Family.cpp
         src/core/Config.cpp
         src/core/EventDispatcher.cpp
         src/managers/PopulationManager.cpp
