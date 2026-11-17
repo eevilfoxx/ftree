@@ -14,17 +14,13 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: "${{ github.workflow }}-${{ github.ref }}"
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  # ==========================================
-  # LINUX
-  # ==========================================
-
   build-linux:
     name: Linux Build and Tests
     runs-on: ubuntu-latest
@@ -37,7 +33,6 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-
           sudo apt-get install -y \
             build-essential \
             cmake \
@@ -62,10 +57,6 @@ jobs:
             -C Release \
             --output-on-failure
 
-  # ==========================================
-  # WINDOWS
-  # ==========================================
-
   build-windows:
     name: Windows Build and Tests
     runs-on: windows-latest
@@ -80,7 +71,10 @@ jobs:
         with:
           arch: x64
 
-      - name: Install pkg-config
+      # The pinned vcpkg baseline is intentionally retained for now:
+      # the project currently requests SFML 2.x (find_package(SFML 2.5)).
+      # Updating the baseline without updating the project may select SFML 3.x.
+      - name: Setup MSYS2 pkg-config
         id: msys2
         uses: msys2/setup-msys2@v2
         with:
@@ -89,119 +83,104 @@ jobs:
           install: >-
             mingw-w64-ucrt-x86_64-pkgconf
 
-      - name: Configure pkg-config
-        shell: pwsh
-        env:
-          MSYS2_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
-        run: |
-          $pkgConfig = Join-Path $env:MSYS2_LOCATION "ucrt64\\bin\\pkg-config.exe"
-
-          if (-not (Test-Path $pkgConfig)) {
-            $pkgConfig = Join-Path $env:MSYS2_LOCATION "ucrt64\\bin\\pkgconf.exe"
-          }
-
-          if (-not (Test-Path $pkgConfig)) {
-            Get-ChildItem (Join-Path $env:MSYS2_LOCATION "ucrt64\\bin") |
-              Where-Object { $_.Name -match "pkg" } |
-              Select-Object -ExpandProperty FullName
-
-            throw "pkg-config executable not found"
-          }
-
-          & $pkgConfig --version
-          "PKG_CONFIG=$pkgConfig" | Out-File -FilePath $env:GITHUB_ENV -Append
-          $pkgDir = Split-Path -Parent $pkgConfig
-          "$pkgDir" | Out-File -FilePath $env:GITHUB_PATH -Append
-
-
-      
-      # ----------------------------------------
-      # Install vcpkg
-      # ----------------------------------------
-
       - name: Checkout vcpkg
         shell: pwsh
         run: |
-          git clone https://github.com/microsoft/vcpkg.git "$env:RUNNER_TEMP\vcpkg"
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
 
-          cd "$env:RUNNER_TEMP\vcpkg"
+          git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to clone vcpkg"
+          }
 
-          git checkout 2024.04.26
+          git -C $vcpkgRoot checkout 2024.04.26
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to checkout pinned vcpkg baseline"
+          }
 
       - name: Bootstrap vcpkg
         shell: pwsh
         run: |
-          & "$env:RUNNER_TEMP\vcpkg\bootstrap-vcpkg.bat" -disableMetrics
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
 
-      # ----------------------------------------
-      # Install dependencies
-      # ----------------------------------------
+          & (Join-Path $vcpkgRoot "bootstrap-vcpkg.bat") -disableMetrics
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to bootstrap vcpkg"
+          }
 
       - name: Install SFML and GoogleTest
         shell: pwsh
         env:
           MSYS2_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
         run: |
-          # ilammy/msvc-dev-cmd sets VCPKG_ROOT to the Visual Studio bundled vcpkg,
-          # which conflicts with our checked-out vcpkg. Unset it so vcpkg uses its own root.
-          if ($env:VCPKG_ROOT) { $env:VCPKG_ROOT = $null }
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
+          $msysBin = Join-Path $env:MSYS2_LOCATION "ucrt64\bin"
 
-          # Ensure vcpkg finds pkg-config (installed via msys2) instead of trying to
-          # download pkgconf from MSYS2 mirrors that return 404.
-          # vcpkg's vcpkg_find_acquire_program(PKGCONFIG) checks ENV{PKG_CONFIG} first
-          # and skips the MSYS2 download if it is set.
-          if (-not $env:PKG_CONFIG) {
-            $pkgConfig = Join-Path $env:MSYS2_LOCATION "ucrt64\bin\pkg-config.exe"
-            if (-not (Test-Path $pkgConfig)) {
-              $pkgConfig = Join-Path $env:MSYS2_LOCATION "ucrt64\bin\pkgconf.exe"
-            }
-            if (-not (Test-Path $pkgConfig)) {
-              throw "pkg-config executable not found in $env:MSYS2_LOCATION"
-            }
-            $env:PKG_CONFIG = $pkgConfig
+          # vcpkg's PKGCONFIG acquisition helper checks ENV{PKG_CONFIG}.
+          # Set it in this same step so the vcpkg process and all port builds
+          # inherit it; do not rely only on PATH or a previous step.
+          $pkgConfig = Join-Path $msysBin "pkg-config.exe"
+          if (-not (Test-Path $pkgConfig)) {
+            $pkgConfig = Join-Path $msysBin "pkgconf.exe"
           }
 
-          & "$env:RUNNER_TEMP\vcpkg\vcpkg.exe" install `
-            --vcpkg-root "$env:RUNNER_TEMP\vcpkg" `
+          if (-not (Test-Path $pkgConfig)) {
+            Get-ChildItem $msysBin -ErrorAction SilentlyContinue |
+              Select-Object -ExpandProperty FullName
+            throw "pkg-config/pkgconf executable not found in $msysBin"
+          }
+
+          & $pkgConfig --version
+          if ($LASTEXITCODE -ne 0) {
+            throw "pkg-config is not executable"
+          }
+
+          $env:PKG_CONFIG = $pkgConfig
+          $env:PATH = "$msysBin;$env:PATH"
+
+          # ilammy/msvc-dev-cmd may expose Visual Studio's bundled vcpkg.
+          # Use the explicitly checked-out vcpkg instance instead.
+          $env:VCPKG_ROOT = $vcpkgRoot
+
+          & (Join-Path $vcpkgRoot "vcpkg.exe") install `
+            --vcpkg-root $vcpkgRoot `
             sfml:x64-windows `
             gtest:x64-windows
 
           if ($LASTEXITCODE -ne 0) {
-            throw "Failed to install dependencies"
+            throw "Failed to install vcpkg dependencies"
           }
 
-          & "$env:RUNNER_TEMP\vcpkg\vcpkg.exe" list
-
-      # ----------------------------------------
-      # Configure project
-      # ----------------------------------------
+          & (Join-Path $vcpkgRoot "vcpkg.exe") list
 
       - name: Configure CMake
         shell: pwsh
         run: |
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
+          $toolchain = Join-Path $vcpkgRoot "scripts\buildsystems\vcpkg.cmake"
+
           cmake -S . -B build `
             -A x64 `
-            -DCMAKE_BUILD_TYPE=Release `
             -DBUILD_TESTING=ON `
-            -DCMAKE_TOOLCHAIN_FILE="$env:RUNNER_TEMP/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+            "-DCMAKE_TOOLCHAIN_FILE=$toolchain" `
             -DVCPKG_TARGET_TRIPLET=x64-windows
 
-      # ----------------------------------------
-      # Build
-      # ----------------------------------------
+          if ($LASTEXITCODE -ne 0) {
+            throw "CMake configuration failed"
+          }
 
       - name: Build application and tests
+        shell: pwsh
         run: |
-          cmake --build build `
-            --config Release `
-            --parallel
-
-      # ----------------------------------------
-      # Tests
-      # ----------------------------------------
+          cmake --build build --config Release --parallel
+          if ($LASTEXITCODE -ne 0) {
+            throw "Build failed"
+          }
 
       - name: Run tests
+        shell: pwsh
         run: |
-          ctest --test-dir build `
-            -C Release `
-            --output-on-failure
+          ctest --test-dir build -C Release --output-on-failure
+          if ($LASTEXITCODE -ne 0) {
+            throw "Tests failed"
+          }
