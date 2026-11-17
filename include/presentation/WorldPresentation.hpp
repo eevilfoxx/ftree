@@ -26,7 +26,6 @@ public:
 
     // Get person data for display
     static PersonDisplay getPersonData(domain::PersonId id);
-    // Get person data for display
-    static PersonDisplay getPersonData(domain::PersonId id);
-    // Get person data for display
-    static PersonDisplay getPersonData(domain::PersonId id);
+};
+
+}
