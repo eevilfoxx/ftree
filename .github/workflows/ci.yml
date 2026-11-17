@@ -71,9 +71,8 @@ jobs:
         with:
           arch: x64
 
-      # The pinned vcpkg baseline is intentionally retained for now:
-      # the project currently requests SFML 2.x (find_package(SFML 2.5)).
-      # Updating the baseline without updating the project may select SFML 3.x.
+      # Keep the pinned vcpkg version because the project currently
+      # requests SFML 2.x (find_package(SFML 2.5)).
       - name: Setup MSYS2 pkg-config
         id: msys2
         uses: msys2/setup-msys2@v2
@@ -117,8 +116,6 @@ jobs:
           $msysBin = Join-Path $env:MSYS2_LOCATION "ucrt64\bin"
 
           # vcpkg's PKGCONFIG acquisition helper checks ENV{PKG_CONFIG}.
-          # Set it in this same step so the vcpkg process and all port builds
-          # inherit it; do not rely only on PATH or a previous step.
           $pkgConfig = Join-Path $msysBin "pkg-config.exe"
           if (-not (Test-Path $pkgConfig)) {
             $pkgConfig = Join-Path $msysBin "pkgconf.exe"
@@ -137,16 +134,15 @@ jobs:
 
           $env:PKG_CONFIG = $pkgConfig
 
-          # CMake 4 compatibility for legacy dependencies (e.g. bzip2 1.0.8).
+          # CMake 4 compatibility for legacy dependencies.
           $env:CMAKE_POLICY_VERSION_MINIMUM = "3.5"
 
-          # Preserve both variables inside vcpkg port builds.
+          # Preserve required environment variables in vcpkg port builds.
           $env:VCPKG_KEEP_ENV_VARS = "PKG_CONFIG;CMAKE_POLICY_VERSION_MINIMUM"
 
           $env:PATH = "$msysBin;$env:PATH"
 
-          # ilammy/msvc-dev-cmd may expose Visual Studio's bundled vcpkg.
-          # Use the explicitly checked-out vcpkg instance instead.
+          # Use the explicitly checked-out vcpkg instance.
           $env:VCPKG_ROOT = $vcpkgRoot
 
           & (Join-Path $vcpkgRoot "vcpkg.exe") install `
@@ -190,18 +186,39 @@ jobs:
             throw "CMake configuration failed"
           }
 
-      - name: Build application and tests
+      - name: Build application
         shell: pwsh
         run: |
-          cmake --build build --config Release --parallel
+          cmake --build build `
+            --config Release `
+            --target FamilyTree `
+            --parallel 1 `
+            --verbose
+
           if ($LASTEXITCODE -ne 0) {
-            throw "Build failed"
+            throw "FamilyTree build failed with exit code $LASTEXITCODE"
+          }
+
+      - name: Build tests
+        shell: pwsh
+        run: |
+          cmake --build build `
+            --config Release `
+            --target FamilyTreeTests `
+            --parallel 1 `
+            --verbose
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "FamilyTreeTests build failed with exit code $LASTEXITCODE"
           }
 
       - name: Run tests
         shell: pwsh
         run: |
-          ctest --test-dir build -C Release --output-on-failure
+          ctest --test-dir build `
+            -C Release `
+            --output-on-failure
+
           if ($LASTEXITCODE -ne 0) {
-            throw "Tests failed"
+            throw "Tests failed with exit code $LASTEXITCODE"
           }
