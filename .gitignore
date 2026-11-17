@@ -18,3 +18,4 @@ CMakeFiles
 #Agents
 AGENT_RULES.md
 /prompts
+compile_commands.json
