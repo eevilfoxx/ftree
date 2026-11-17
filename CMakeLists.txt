@@ -1,26 +1,24 @@
 cmake_minimum_required(VERSION 3.15)
 project(FamilyTree VERSION 1.0.0 LANGUAGES CXX)
 
-# Установка стандарта C++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Поиск SFML (опционально — тесты не требуют SFML)
-find_package(SFML 2.5 COMPONENTS graphics window system QUIET)
-set(SFML_FOUND ${SFML_FOUND} CACHE INTERNAL "SFML found")
+option(BUILD_TESTING "Собрать тесты" ON)
 
-# Настройка флагов компиляции
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
-    else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+function(ftree_enable_warnings target)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W4 /permissive-)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
     endif()
-endif()
+endfunction()
 
-# Исходные файлы предметной области (без SFML)
+# SFML is optional so the domain tests can be built on machines without it.
+# CONFIG prefers the package config shipped by vcpkg and SFML distributions.
+find_package(SFML 2.5 COMPONENTS graphics window system CONFIG QUIET)
+
 set(DOMAIN_SOURCES
     src/core/RandomEngine.cpp
     src/entites/Person.cpp
@@ -38,7 +36,6 @@ set(DOMAIN_SOURCES
     src/utils/StatisticsService.cpp
 )
 
-# Исходные файлы визуализации (требуют SFML)
 set(VIZ_SOURCES
     src/vizualization/Visualizer.cpp
     src/vizualization/Camera.cpp
@@ -46,58 +43,41 @@ set(VIZ_SOURCES
     src/vizualization/Scene.cpp
 )
 
-# Создаем цель исполняемого файла
 if(SFML_FOUND)
-    add_executable(FamilyTree.exe
+    add_executable(FamilyTree
         src/main.cpp
         ${DOMAIN_SOURCES}
         ${VIZ_SOURCES}
     )
 
-    target_include_directories(FamilyTree.exe PRIVATE include)
+    target_include_directories(FamilyTree PRIVATE include)
+    ftree_enable_warnings(FamilyTree)
 
-    target_link_libraries(FamilyTree.exe PRIVATE
-        sfml-graphics
-        sfml-window
-        sfml-system
-    )
+    # SFML 2.x packages expose either namespaced or legacy target names,
+    # depending on the distributor/package manager.
+    foreach(component Graphics Window System)
+        if(TARGET SFML::${component})
+            list(APPEND SFML_LINK_TARGETS SFML::${component})
+        elseif(TARGET sfml-${component})
+            string(TOLOWER "${component}" component_lower)
+            list(APPEND SFML_LINK_TARGETS sfml-${component_lower})
+        else()
+            message(FATAL_ERROR "SFML was found, but target for ${component} is missing")
+        endif()
+    endforeach()
 
-    # Для Windows: копируем DLL файлы SFML рядом с исполняемым файлом
-    if(WIN32)
-        get_target_property(SFML_LIB_DIR SFML::Graphics LOCATION)
-        get_filename_component(SFML_LIB_DIR ${SFML_LIB_DIR} DIRECTORY)
-
-        add_custom_command(TARGET FamilyTree.exe POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${SFML_LIB_DIR}/sfml-graphics-2.dll"
-                "${SFML_LIB_DIR}/sfml-window-2.dll"
-                "${SFML_LIB_DIR}/sfml-system-2.dll"
-                $<TARGET_FILE_DIR:FamilyTree>
-        )
-    endif()
+    target_link_libraries(FamilyTree PRIVATE ${SFML_LINK_TARGETS})
 else()
-    message(WARNING "SFML не найден — основное приложение FamilyTree.exe не будет собрано. Тесты будут собраны без SFML.")
+    message(WARNING "SFML не найден — приложение FamilyTree не будет собрано. Тесты остаются доступны.")
 endif()
 
-# Устанавливаем свойства цели основного приложения
 if(SFML_FOUND)
-    set_target_properties(FamilyTree.exe PROPERTIES
-        CXX_STANDARD 17
-        CXX_STANDARD_REQUIRED ON
-        CXX_EXTENSIONS OFF
-    )
-endif()
-
-# Опционально: установка исполняемого файла
-if(SFML_FOUND)
-    install(TARGETS FamilyTree.exe DESTINATION bin)
+    install(TARGETS FamilyTree DESTINATION bin)
 endif()
 
 # ============================================================================
 # Тестирование (GoogleTest)
 # ============================================================================
-option(BUILD_TESTING "Собрать тесты" ON)
-
 if(BUILD_TESTING)
     enable_testing()
     find_package(GTest REQUIRED)
@@ -135,6 +115,7 @@ if(BUILD_TESTING)
     )
 
     target_include_directories(FamilyTreeTests PRIVATE include)
+    ftree_enable_warnings(FamilyTreeTests)
 
     target_link_libraries(FamilyTreeTests PRIVATE
         GTest::gtest_main
