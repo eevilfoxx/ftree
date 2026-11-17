@@ -136,7 +136,13 @@ jobs:
           }
 
           $env:PKG_CONFIG = $pkgConfig
-          $env:VCPKG_KEEP_ENV_VARS = "PKG_CONFIG"
+
+          # CMake 4 compatibility for legacy dependencies (e.g. bzip2 1.0.8).
+          $env:CMAKE_POLICY_VERSION_MINIMUM = "3.5"
+
+          # Preserve both variables inside vcpkg port builds.
+          $env:VCPKG_KEEP_ENV_VARS = "PKG_CONFIG;CMAKE_POLICY_VERSION_MINIMUM"
+
           $env:PATH = "$msysBin;$env:PATH"
 
           # ilammy/msvc-dev-cmd may expose Visual Studio's bundled vcpkg.
