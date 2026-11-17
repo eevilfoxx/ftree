@@ -6,6 +6,10 @@
 #include "core/SimulationClock.hpp"
 #include "core/NameDatabase.hpp"
 #include "presentation/WorldPresentation.hpp"
+#include "simulation/AgingSystem.hpp"
+#include "simulation/DeathSystem.hpp"
+#include "simulation/BirthSystem.hpp"
+#include "simulation/StatisticsSystem.hpp"
 #include <memory>
 #include <string>
 

@@ -8,8 +8,8 @@ Random::Random(unsigned seed) : engine_(seed) {}
 
 Random::Random() {
     auto now = std::chrono::high_resolution_clock::now();
-    auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
-    engine_(ns);
+    auto ns = static_cast<unsigned int>(std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count());
+    engine_(static_cast<unsigned int>(ns));
 }
 
 int Random::randomInt(int min, int max) {

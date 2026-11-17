@@ -4,7 +4,7 @@
 
 namespace ftree::presentation {
 
-std::vector<PersonDisplay> WorldPresentation::getAllPeople(const World& world) {
+std::vector<PersonDisplay> WorldPresentation::getAllPeople(const ftree::domain::World& world) {
     std::vector<PersonDisplay> result;
     auto people = world.getAllPeopleIncludingDead();
     
@@ -29,7 +29,7 @@ std::vector<PersonDisplay> WorldPresentation::getAllPeople(const World& world) {
     return result;
 }
 
-std::vector<FamilyDisplay> WorldPresentation::getAllFamilies(const World& world) {
+std::vector<FamilyDisplay> WorldPresentation::getAllFamilies(const ftree::domain::World& world) {
     std::vector<FamilyDisplay> result;
     auto families = world.getAllFamilies();
     
@@ -54,10 +54,10 @@ std::vector<FamilyDisplay> WorldPresentation::getAllFamilies(const World& world)
     return result;
 }
 
-std::vector<PersonId> WorldPresentation::getLivingPeopleIds(const World& world) {
+std::vector<PersonId> WorldPresentation::getLivingPeopleIds(const ftree::domain::World& world) {
     return world.getLivingPeople();
 }
 
-std::vector<PersonId> WorldPresentation::getFamilyMembers(const World& world, FamilyId familyId) {
+std::vector<PersonId> WorldPresentation::getFamilyMembers(const ftree::domain::World& world, FamilyId familyId) {
     return world.getFamilyMembers(familyId);
 }

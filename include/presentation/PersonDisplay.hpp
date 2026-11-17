@@ -24,14 +24,4 @@ struct PersonDisplay {
     int depth;  // depth in tree
 };
 
-struct FamilyDisplay {
-    FamilyId id;
-    PersonId motherId;
-    PersonId fatherId;
-    std::vector<PersonId> childrenIds;
-    std::string surname;
-    int generationLevel;
-    int memberCount;  // mother + father + children count
-};
-
 } // namespace ftree::presentation
