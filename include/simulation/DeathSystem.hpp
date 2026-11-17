@@ -11,10 +11,10 @@ class DeathSystem {
 public:
     // Process deaths for all living people in the world
     // Returns number of deaths processed
-    static int processDeaths(World& world, double mortality_a, double mortality_b);
+    static int processDeaths(domain::World& world, double mortality_a, double mortality_b);
 
     // Kill a specific person (marks dead, preserves genealogy)
-    static void killPerson(World& world, PersonId id);
+    static void killPerson(domain::World& world, domain::PersonId id);
 };
 
 }

@@ -10,10 +10,10 @@ class MarriageSystem {
 public:
     // Try to marry two eligible persons
     // Returns true if marriage was created
-    static bool tryMarry(World& world, PersonId maleId, PersonId femaleId);
+    static bool tryMarry(domain::World& world, domain::PersonId maleId, domain::PersonId femaleId);
 
     // Get minimum marriage age
-    static int getMin MarriageAge();
+    static int getMinMarriageAge();
 
     // Get maximum person age
     static int getMaxPersonAge();

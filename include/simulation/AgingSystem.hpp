@@ -9,10 +9,10 @@ namespace ftree::simulation {
 class AgingSystem {
 public:
     // Apply aging to all living people in the world
-    static void ageAllLiving(World& world);
+    static void ageAllLiving(domain::World& world);
 
     // Age a specific person (no-op if dead)
-    static void agePerson(World& world, PersonId id);
+    static void agePerson(domain::World& world, domain::PersonId id);
 };
 
 } // namespace ftree::simulation
