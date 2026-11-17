@@ -11,8 +11,15 @@ void PregnancyService::processPregnancies() {
     auto families = familyManager_->getAllFamilies();
     
     for (auto& family : families) {
-        auto motherId = family->getMother()->getUuid();
-        auto fatherId = family->getFather()->getUuid();
+        auto motherPtr = family->getMother();
+        auto fatherPtr = family->getFather();
+        
+        if (!motherPtr || !fatherPtr) {
+            continue;
+        }
+        
+        auto motherId = motherPtr->getUuid();
+        auto fatherId = fatherPtr->getUuid();
         
         auto mother = personRepository_->getById(motherId);
         auto father = personRepository_->getById(fatherId);

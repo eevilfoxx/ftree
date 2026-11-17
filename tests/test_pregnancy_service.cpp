@@ -9,6 +9,7 @@
 #include <core/EventDispatcher.hpp>
 #include <core/Config.hpp>
 #include <entities/Person.hpp>
+#include <entities/Family.hpp>
 #include <entities/Gender.hpp>
 #include <managers/NameManager.hpp>
 
@@ -74,4 +75,35 @@ TEST_F(PregnancyServiceTest, DeadMotherNoPregnancy) {
     auto retrievedMother = personRepo->getById(1);
     ASSERT_NE(retrievedMother, nullptr);
     EXPECT_FALSE(retrievedMother->isPregnant());
+}
+
+TEST_F(PregnancyServiceTest, FamilyWithNullParentsNoCrash) {
+    // Family with null mother and father should not cause null dereference
+    auto nullFamily = std::make_shared<Family>(99, nullptr, nullptr);
+    familyRepo->add(nullFamily);
+
+    // Should not crash
+    pregnancyService->processPregnancies();
+}
+
+TEST_F(PregnancyServiceTest, FamilyWithNullMotherNoCrash) {
+    auto father = std::make_shared<Person>(2, Gender::Male, 30);
+    personRepo->add(father);
+
+    auto nullMotherFamily = std::make_shared<Family>(98, nullptr, father);
+    familyRepo->add(nullMotherFamily);
+
+    // Should not crash
+    pregnancyService->processPregnancies();
+}
+
+TEST_F(PregnancyServiceTest, FamilyWithNullFatherNoCrash) {
+    auto mother = std::make_shared<Person>(1, Gender::Female, 25);
+    personRepo->add(mother);
+
+    auto nullFatherFamily = std::make_shared<Family>(97, mother, nullptr);
+    familyRepo->add(nullFatherFamily);
+
+    // Should not crash
+    pregnancyService->processPregnancies();
 }
