@@ -23,12 +23,23 @@ void EventDispatcher::unsubscribe(EventType type, HandlerId handlerId) {
 }
 
 void EventDispatcher::publish(const Event& event) {
-    std::lock_guard<std::mutex> lock(mutex);
-    auto it = handlers.find(event.getType());
-    if (it != handlers.end()) {
-        for (const auto& pair : it->second) {
-            pair.second(event);
+    // Copy handlers while holding the mutex, then call them outside the lock.
+    // This makes publish() reentrant-safe: handlers can safely call
+    // subscribe/unsubscribe/publish without deadlocking on a non-recursive mutex.
+    std::vector<EventHandler> handlersToCall;
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        auto it = handlers.find(event.getType());
+        if (it != handlers.end()) {
+            handlersToCall.reserve(it->second.size());
+            for (const auto& pair : it->second) {
+                handlersToCall.push_back(pair.second);
+            }
         }
+    }
+
+    for (const auto& handler : handlersToCall) {
+        handler(event);
     }
 }
 
