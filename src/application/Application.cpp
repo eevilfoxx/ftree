@@ -5,25 +5,31 @@
 
 namespace ftree::application {
 
-Application::Application(bool enableVisualization) 
-    : visualizationEnabled_(enableVisualization), speed_(1) {
+Application::Application(bool enableVisualization)
+    : visualizationEnabled_(enableVisualization),
+      isPaused_(false),
+      isAutoAdvance_(false),
+      speed_(1) {
     clock_ = std::make_unique<core::SimulationClock>();
+    nameDb_ = std::make_unique<core::NameDatabase>();
 }
+
+Application::~Application() = default;
 
 bool Application::initialize(const std::string& configPath) {
     // 1. Load configuration
     config_ = std::make_unique<core::SimulationConfig>();
     config_->loadFromFile(configPath);
-    
+
     // 2. Load names
     rng_ = std::make_unique<core::Random>(42);  // fixed seed for reproducibility
-    
-    nameDb_.loadMaleNames("config/male_names.txt");
-    nameDb_.loadFemaleNames("config/female_names.txt");
-    nameDb_.loadSurnames("config/surnames.txt");
-    
-    // 2. Create World
-    world_ = std::make_unique<core::World>();
+
+    nameDb_->loadMaleNames("config/male_names.txt");
+    nameDb_->loadFemaleNames("config/female_names.txt");
+    nameDb_->loadSurnames("config/surnames.txt");
+
+    // 3. Create World
+    world_ = std::make_unique<domain::World>();
     
     // 3. Create presentation layer
     presentation_ = std::make_unique<presentation::WorldPresentation>();
@@ -46,87 +52,89 @@ void Application::setup() {
     // Age range: 20-40 as per config
     int minAge = config_->getInt("min_founder_age", 20);
     int maxAge = config_->getInt("max_founder_age", 40);
-    
+
     // Create 4 founders: 2 males, 2 females
-    PersonId m1 = world_->createPerson("John", core::domain::Gender::Male, 
-                                      config_->getInt("min_founder_age", 20) + 
-                                      (config_->getInt("max_founder_age", 40) - 
-                                       config_->getInt("min_founder_age", 20)) / 2);
-    PersonId m2 = world_->createPerson("Mike", core::domain::Gender::Male, 32);
-    PersonId f1 = world_->createPerson("Jane", core::domain::Gender::Female, 28);
-    PersonId f2 = world_->createPerson("Mary", core::domain::Gender::Female, 31);
-    
+    domain::PersonId m1 = world_->createPerson("John", domain::Gender::Male,
+                                              minAge + (maxAge - minAge) / 2);
+    domain::PersonId m2 = world_->createPerson("Mike", domain::Gender::Male, 32);
+    domain::PersonId f1 = world_->createPerson("Jane", domain::Gender::Female, 28);
+    domain::PersonId f2 = world_->createPerson("Mary", domain::Gender::Female, 31);
+
     // Create families
-    FamilyId fam1 = world_->createFamily(f1, m1, "Smith");
-    FamilyId fam2 = world_->createFamily(f2, m2, "Jones");
-    
+    domain::FamilyId fam1 = world_->createFamily(f1, m1, "Smith");
+    domain::FamilyId fam2 = world_->createFamily(f2, m2, "Jones");
+
     // Initialize presentation data
     presentation_->getAllPeople(*world_);
     presentation_->getAllFamilies(*world_);
 }
 
 int Application::run(int years, bool headless) {
-    if (!initialize()) return -1;
-    
-    visualizationEnabled_ = !headless;
-    
-    if (visualizationEnabled_ && !window_) {
-        // Already handled in initialize
+    // Initialize only once; do not re-initialize if already done.
+    if (!config_ || !world_) {
+        initialize();
     }
-    
+
+    visualizationEnabled_ = !headless && visualizationEnabled_;
+
+    // If headless and no window exists, ensure window_ stays null.
+    if (headless) {
+        window_ = nullptr;
+    }
+
     // Main loop
     for (int y = 0; y < years; y++) {
         // Simulation step
         // 1. Aging
-        simulation::AgingSystem::ageAllLiving(*world_);
-        
+        ftree::simulation::AgingSystem::ageAllLiving(*world_);
+
         // 2. Deaths
-        simulation::DeathSystem::processDeaths(*world_, 
+        ftree::simulation::DeathSystem::processDeaths(*world_,
             config_->getDouble("mortality_a", 0.001),
             config_->getDouble("mortality_b", 0.0693));
-        
+
         // 3. Marriages
         // (would iterate over singles and try marriages)
-        
+
         // 4. Pregnancies
         // (would iterate over families and try conceptions)
-        
+
         // 5. Births
-        simulation::BirthSystem::processBirths(*world_);
-        
-        // 5. Statistics
+        ftree::simulation::BirthSystem::processBirths(*world_);
+
+        // 6. Statistics
         int pop, families, children, adults, elders;
-        presentation::StatisticsSystem::getStatistics(*world_, y + 1, pop, families, children, adults, elders);
-        
-        // Handle events (for visualization)
-        if (!headless) {
+        ftree::simulation::StatisticsSystem::collectStatistics(*world_, y + 1,
+            pop, families, children, adults, elders);
+
+        // Handle events (for visualization only)
+        if (!headless && window_) {
             handleEvents();
         }
-        
+
         // Auto advance or pause handling
-        if (!isPaused()) {
+        if (!isPaused_) {
             // Could have speed control here
         }
     }
-    
+
     return 0;
 }
 
 void Application::pause() {
-    // Toggle pause state
+    isPaused_ = true;
 }
 
 void Application::resume() {
-    // Resume simulation
+    isPaused_ = false;
 }
 
 void Application::nextYear() {
-    // Advance one year
     clock_->nextYear();
 }
 
 void Application::toggleAutoAdvance() {
-    // Toggle auto advance state
+    isAutoAdvance_ = !isAutoAdvance_;
 }
 
 int Application::getCurrentYear() const {
@@ -134,28 +142,30 @@ int Application::getCurrentYear() const {
 }
 
 bool Application::isPaused() const {
-    // Return pause state
-    return false;
+    return isPaused_;
 }
 
 bool Application::isAutoAdvance() const {
-    return false;
+    return isAutoAdvance_;
 }
 
 int Application::getSpeed() const {
     return speed_;
 }
 
-presentation::PersonDisplay Application::getPersonData(PersonId id) const {
-    // Return person display data
+presentation::PersonDisplay Application::getPersonData(domain::PersonId id) const {
     return presentation_->getPersonData(id);
 }
 
-void Application::getStatistics(int& population, int& families, int& children, int& adults, int& elders) const {
-    presentation::StatisticsSystem::getStatistics(*world_, 0, population, families, children, adults, elders);
+void Application::getStatistics(int& population, int& families,
+                                 int& children, int& adults, int& elders) const {
+    ftree::simulation::StatisticsSystem::collectStatistics(*world_, 0,
+        population, families, children, adults, elders);
 }
 
 void Application::handleEvents() {
+    if (!window_) return;
+
     sf::Event event;
     while (window_->pollEvent(event)) {
         if (event.type == sf::Event::Closed) {

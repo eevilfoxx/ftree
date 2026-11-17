@@ -8,17 +8,15 @@ int main(int argc, char* argv[]) {
             headless = true;
         }
     }
-    
+
+    // createVisualization is the inverse of headless
+    bool createVisualization = !headless;
+
     // Create and run application
-    ftree::application::Application app(headless);
-    
-    if (!app.initialize()) {
-        std::cerr << "Failed to initialize application" << std::endl;
-        return 1;
-    }
-    
-    // Run simulation for 100 years
+    ftree::application::Application app(createVisualization);
+
+    // run() initializes internally if not already initialized
     app.run(100, headless);
-    
+
     return 0;
 }

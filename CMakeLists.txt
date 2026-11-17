@@ -37,6 +37,7 @@ set(DOMAIN_SOURCES
 )
 
 set(VIZ_SOURCES
+    src/application/Application.cpp
     src/vizualization/Visualizer.cpp
     src/vizualization/Camera.cpp
     src/vizualization/UI.cpp
