@@ -1,3 +1,4 @@
+
 name: CI
 
 # Запускать CI на любой ветке, кроме веток для документации и gh-pages
@@ -74,8 +75,6 @@ jobs:
         with:
           arch: x64
 
-      # Keep the pinned vcpkg version because the project currently
-      # requests SFML 2.x (find_package(SFML 2.5)).
       - name: Setup MSYS2 pkg-config
         id: msys2
         uses: msys2/setup-msys2@v2
@@ -109,6 +108,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Failed to bootstrap vcpkg"
           }
+
+      # Кэш готовых бинарных пакетов vcpkg.
+      # При повторных запусках зависимости не потребуется собирать заново,
+      # если их ABI и параметры сборки не изменились.
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg-binary-cache
+          key: windows-vcpkg-2024.04.26-x64-windows
+          restore-keys: |
+            windows-vcpkg-2024.04.26-x64-windows
 
       - name: Install SFML and GoogleTest
         shell: pwsh
@@ -147,6 +157,9 @@ jobs:
 
           # Use the explicitly checked-out vcpkg instance.
           $env:VCPKG_ROOT = $vcpkgRoot
+
+          # Enable local binary cache.
+          $env:VCPKG_BINARY_SOURCES = "clear;files,$env:RUNNER_TEMP/vcpkg-binary-cache,readwrite"
 
           & (Join-Path $vcpkgRoot "vcpkg.exe") install `
             --vcpkg-root $vcpkgRoot `
