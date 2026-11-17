@@ -149,6 +149,20 @@ jobs:
             gtest:x64-windows
 
           if ($LASTEXITCODE -ne 0) {
+            $logDir = Join-Path $vcpkgRoot "buildtrees\bzip2"
+
+            Write-Host "===== BZIP2 CONFIGURE OUTPUT ====="
+            Get-Content (Join-Path $logDir "config-x64-windows-out.log") `
+              -Tail 200 -ErrorAction SilentlyContinue
+
+            Write-Host "===== BZIP2 RELEASE CONFIGURE LOG ====="
+            Get-Content (Join-Path $logDir "config-x64-windows-rel-CMakeCache.txt.log") `
+              -Tail 200 -ErrorAction SilentlyContinue
+
+            Write-Host "===== BZIP2 DEBUG CONFIGURE LOG ====="
+            Get-Content (Join-Path $logDir "config-x64-windows-dbg-CMakeCache.txt.log") `
+              -Tail 200 -ErrorAction SilentlyContinue
+
             throw "Failed to install vcpkg dependencies"
           }
 
