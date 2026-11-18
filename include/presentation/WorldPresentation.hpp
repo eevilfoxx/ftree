@@ -1,28 +1,45 @@
+
 #pragma once
 
-#include "presentation/PersonDisplay.hpp"
-#include "presentation/FamilyDisplay.hpp"
 #include "domain/World.hpp"
+#include "presentation/FamilyDisplay.hpp"
+#include "presentation/PersonDisplay.hpp"
+
 #include <vector>
 
 namespace ftree::presentation {
 
 class WorldPresentation {
 public:
-    // Get all people as display format
-    static std::vector<PersonDisplay> getAllPeople(const ftree::domain::World& world);
+    // Returns all people, including deceased people.
+    // Results are sorted by person ID.
+    static std::vector<PersonDisplay> getAllPeople(
+        const domain::World& world
+    );
 
-    // Get all families as display format
-    static std::vector<FamilyDisplay> getAllFamilies(const ftree::domain::World& world);
+    // Returns all families.
+    // Results are sorted by family ID.
+    static std::vector<FamilyDisplay> getAllFamilies(
+        const domain::World& world
+    );
 
-    // Get people living
-    static std::vector<domain::PersonId> getLivingPeopleIds(const ftree::domain::World& world);
+    // Returns IDs of living people.
+    static std::vector<domain::PersonId> getLivingPeopleIds(
+        const domain::World& world
+    );
 
-    // Get family members
-    static std::vector<domain::PersonId> getFamilyMembers(const ftree::domain::World& world, domain::FamilyId familyId);
+    // Returns members of a family.
+    static std::vector<domain::PersonId> getFamilyMembers(
+        const domain::World& world,
+        domain::FamilyId familyId
+    );
 
-    // Get person data for display
-    static PersonDisplay getPersonData(const ftree::domain::World& world,domain::PersonId id);
+    // Returns display data for one person.
+    // Throws std::out_of_range if the person does not exist.
+    static PersonDisplay getPersonData(
+        const domain::World& world,
+        domain::PersonId id
+    );
 };
 
-}
+} // namespace ftree::presentation
