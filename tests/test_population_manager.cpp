@@ -143,3 +143,20 @@ TEST_F(PopulationManagerTest, FindEligiblePartnersEligible) {
     ASSERT_EQ(partners.size(), 1);
     EXPECT_EQ(partners[0]->getUuid(), 2);
 }
+
+TEST_F(PopulationManagerTest, AreRelativesParentAndChild) {
+    auto parent = std::make_shared<Person>(1, Gender::Female, 45);
+    auto child = std::make_shared<Person>(2, Gender::Male, parent, nullptr, 20);
+
+    EXPECT_TRUE(popManager->areRelatives(parent, child));
+    EXPECT_TRUE(popManager->areRelatives(child, parent));
+}
+
+TEST_F(PopulationManagerTest, FindEligiblePartnersRejectsPersonAboveMaximumAge) {
+    auto person = std::make_shared<Person>(1, Gender::Male, 101);
+    auto partner = std::make_shared<Person>(2, Gender::Female, 30);
+    popManager->addPerson(person);
+    popManager->addPerson(partner);
+
+    EXPECT_TRUE(popManager->findEligiblePartners(person).empty());
+}

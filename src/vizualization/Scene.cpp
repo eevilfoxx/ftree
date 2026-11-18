@@ -2,7 +2,6 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
-#include <unordered_set>
 
 Scene::Scene(std::shared_ptr<FamilyManager> familyManager,
              std::shared_ptr<PopulationManager> populationManager,
@@ -14,7 +13,7 @@ void Scene::update() {
     calculateTreeLayout();
 }
 
-void Scene::draw(sf::RenderWindow& window, const sf::View& view) {
+void Scene::draw(sf::RenderWindow& window, const sf::View& /*view*/) {
     auto families = familyManager_->getAllFamilies();
     drawFamilyConnections(families, window);
     
@@ -74,7 +73,6 @@ void Scene::calculateTreeLayout() {
         sortLevelByParents(persons);
 
         // 🔥 центрируем уровень
-        float totalWidth = (persons.size() - 1) * horizontalSpacing_;
         float startLevelX = startX;
 
         for (size_t i = 0; i < persons.size(); ++i) {
@@ -83,81 +81,6 @@ void Scene::calculateTreeLayout() {
             personPositions_[persons[i]->getUuid()] = {x, y};
         }
     }
-}
-
-std::shared_ptr<Person> Scene::findRoot(std::shared_ptr<Person> person) {
-    while (person->getMother() || person->getFather()) {
-        if (person->getFather())
-            person = person->getFather();
-        else
-            person = person->getMother();
-    }
-    return person;
-}
-
-float Scene::layoutSubtree(std::shared_ptr<Person> person,
-                          float x, float y,
-                          std::unordered_set<int>& visited) {
-    if (!person || visited.find(person->getUuid()) != visited.end())
-        return 0;
-    visited.insert(person->getUuid());
-
-    auto family = person->getFamily();
-    std::vector<std::shared_ptr<Person>> children;
-
-    if (family)
-        children = family->getChildren();
-
-    float subtreeWidth = 0;
-    std::vector<float> childCenters;
-
-    float childX = x;
-
-    // --- размещаем детей ---
-    for (auto& child : children) {
-        float w = layoutSubtree(
-            child,
-            childX,
-            y + verticalSpacing_,
-            visited
-        );
-
-        childCenters.push_back(childX + w / 2);
-        childX += w + horizontalSpacing_;
-        subtreeWidth += w + horizontalSpacing_;
-    }
-
-    if (!children.empty())
-        subtreeWidth -= horizontalSpacing_;
-
-    if (subtreeWidth == 0)
-        subtreeWidth = nodeWidth_;
-
-    float centerX = x + subtreeWidth / 2;
-
-    // --- размещаем текущего ---
-    personPositions_[person->getUuid()] = {
-        centerX,
-        y
-    };
-
-    // --- размещаем супруга ---
-    if (family) {
-        auto spouse = (family->getFather() == person)
-                        ? family->getMother()
-                        : family->getFather();
-
-        if (spouse && !(visited.find(spouse->getUuid()) != visited.end())) {
-            visited.insert(spouse->getUuid());
-
-            personPositions_[spouse->getUuid()] = {
-                centerX + horizontalSpacing_,
-                y
-            };
-        }
-    }
-
-    return subtreeWidth;
 }
 
 void Scene::drawFamilyConnections(const std::vector<std::shared_ptr<Family>>& families, sf::RenderWindow& window) {
@@ -301,14 +224,14 @@ void Scene::sortLevelByParents(std::vector<std::shared_ptr<Person>>& persons) {
 }
 
 void Scene::drawMarriageConnection(const sf::Vector2f& pos1, const sf::Vector2f& pos2, sf::RenderWindow& window) {
-    sf::VertexArray line(sf::LinesStrip, 2);
+    sf::VertexArray line(sf::LineStrip, 2);
     line[0].position = pos1;
     line[1].position = pos2;
     line[0].color = sf::Color(150, 150, 150, 200);
     line[1].color = sf::Color(150, 150, 150, 200);
     
     if (std::abs(pos1.x - pos2.x) > 100) {
-        sf::VertexArray curve(sf::LinesStrip, 3);
+        sf::VertexArray curve(sf::LineStrip, 3);
         curve[0].position = pos1;
         curve[1].position = sf::Vector2f((pos1.x + pos2.x) / 2, (pos1.y + pos2.y) / 2 - 20);
         curve[2].position = pos2;
@@ -433,11 +356,12 @@ void Scene::drawPerson(const std::shared_ptr<Person>& person, const sf::Vector2f
     }
 }
 
-int Scene::getPersonAtPosition(const sf::Vector2f& worldPos, float zoomLevel) const {
+int Scene::getPersonAtPosition(const sf::Vector2f& worldPos) const {
     for (const auto& [id, pos] : personPositions_) {
-        float distance = std::sqrt(std::pow(worldPos.x - pos.x, 2) + 
-                                 std::pow(worldPos.y - pos.y, 2));
-        if (distance <= nodeRadius_ * 2.0f) {
+        const float dx = worldPos.x - pos.x;
+        const float dy = worldPos.y - pos.y;
+        const float hitRadius = nodeRadius_ * 2.0f;
+        if (dx * dx + dy * dy <= hitRadius * hitRadius) {
             return id;
         }
     }

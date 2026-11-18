@@ -1,5 +1,7 @@
 #include "core/Event.hpp"
 
+#include <algorithm>
+
 namespace ftree::core {
 
 int EventDispatcher::subscribe(EventType type, EventHandler handler) {

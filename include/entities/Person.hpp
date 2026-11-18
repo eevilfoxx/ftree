@@ -4,7 +4,6 @@
 
 #include <memory>
 #include <string>
-#include <functional>
 #include "Gender.hpp"
 
 class Family;
@@ -21,7 +20,7 @@ public:
     int getAge() const { return age; }
     bool isPregnant() const { return pregnant; }
     bool isAlive() const { return alive; }
-    std::string getName() const { return name; }
+    const std::string& getName() const { return name; }
     bool isMarried() const;
     
     std::shared_ptr<Person> getMother() const { return mother.lock(); }

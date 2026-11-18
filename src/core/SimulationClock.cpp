@@ -3,11 +3,7 @@
 namespace ftree::core {
 
 void SimulationClock::nextYear() {
-    currentYear_++;
-}
-
-int SimulationClock::currentYear() const {
-    return currentYear_;
+    ++currentYear_;
 }
 
 void SimulationClock::reset() {

@@ -2,6 +2,12 @@
 #include <domain/Person.hpp>
 #include <domain/Family.hpp>
 #include <domain/World.hpp>
+#include <simulation/DeathSystem.hpp>
+#include <simulation/PregnancySystem.hpp>
+#include <simulation/BirthSystem.hpp>
+#include <simulation/MarriageSystem.hpp>
+#include <core/NameDatabase.hpp>
+#include <core/Random.hpp>
 #include <iostream>
 
 using namespace ftree::domain;
@@ -299,7 +305,168 @@ TEST(WorldTest, FamilyDissolutionPreservesPeople) {
     EXPECT_FALSE(world.familyExists(famId));
 }
 
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+
+
+// --- Simulation system tests ---
+
+TEST(DeathSystemTest, ZeroProbabilityNeverKills) {
+    World world;
+    const auto id = world.createPerson("Noah", Gender::Male, 80);
+
+    ftree::core::Random random(7);
+    EXPECT_EQ(ftree::simulation::DeathSystem::processDeaths(world, 0.0, 0.0, random), 0);
+    ASSERT_TRUE(world.getPerson(id).has_value());
+    EXPECT_TRUE(world.getPerson(id)->alive);
+}
+
+TEST(DeathSystemTest, ProbabilityAtLeastOneKillsLivingPeople) {
+    World world;
+    const auto id = world.createPerson("Noah", Gender::Male, 80);
+
+    ftree::core::Random random(7);
+    EXPECT_EQ(ftree::simulation::DeathSystem::processDeaths(world, 2.0, 0.0, random), 1);
+    ASSERT_TRUE(world.getPerson(id).has_value());
+    EXPECT_FALSE(world.getPerson(id)->alive);
+}
+
+TEST(PregnancySystemTest, EligibilityRejectsInvalidMotherAndFather) {
+    World world;
+    const auto motherId = world.createPerson("Alice", Gender::Female, 30);
+    const auto fatherId = world.createPerson("Bob", Gender::Male, 35);
+    const auto deadFatherId = world.createPerson("Charles", Gender::Male, 35);
+    world.killPerson(deadFatherId);
+
+    ftree::core::Random random(7);
+    EXPECT_FALSE(ftree::simulation::PregnancySystem::tryConceive(
+        world, fatherId, motherId, 0.3, random));
+    EXPECT_FALSE(ftree::simulation::PregnancySystem::tryConceive(
+        world, motherId, deadFatherId, 0.3, random));
+}
+
+TEST(BirthSystemTest, GiveBirthCreatesChildAndPreservesGenealogy) {
+    World world;
+    const auto motherId = world.createPerson("Alice", Gender::Female, 30);
+    const auto fatherId = world.createPerson("Bob", Gender::Male, 35);
+    const auto familyId = world.createFamily(motherId, fatherId, "Smith");
+    world.getPersonRef(motherId).pregnant = true;
+
+    ftree::core::Random random(7);
+    const auto childId = ftree::simulation::BirthSystem::giveBirth(
+        world, motherId, "Smith", random);
+
+    ASSERT_NE(childId, 0u);
+    const auto child = world.getPerson(childId);
+    ASSERT_TRUE(child.has_value());
+    EXPECT_EQ(child->motherId, motherId);
+    EXPECT_EQ(child->fatherId, fatherId);
+    EXPECT_EQ(child->familyId, 0u);
+    EXPECT_EQ(world.getFamily(familyId)->childrenIds.size(), 1u);
+}
+
+TEST(BirthSystemTest, ProcessBirthsResetsPregnancyAndCreatesOneToThreeChildren) {
+    World world;
+    const auto motherId = world.createPerson("Alice", Gender::Female, 30);
+    const auto fatherId = world.createPerson("Bob", Gender::Male, 35);
+    const auto familyId = world.createFamily(motherId, fatherId, "Smith");
+    world.getPersonRef(motherId).pregnant = true;
+
+    ftree::core::Random random(7);
+    const int births = ftree::simulation::BirthSystem::processBirths(
+        world, 0.01, 0.09, random);
+
+    EXPECT_GE(births, 1);
+    EXPECT_LE(births, 3);
+    EXPECT_FALSE(world.getPerson(motherId)->pregnant);
+    EXPECT_EQ(world.getFamily(familyId)->childrenIds.size(),
+              static_cast<std::size_t>(births));
+}
+
+
+TEST(WorldTest, DissolvedFamilyIdsAreNotReused) {
+    World world;
+    const auto mother1 = world.createPerson("Mother1", Gender::Female, 30);
+    const auto father1 = world.createPerson("Father1", Gender::Male, 30);
+    const auto firstFamily = world.createFamily(mother1, father1, "First");
+    world.dissolveFamily(firstFamily);
+
+    const auto mother2 = world.createPerson("Mother2", Gender::Female, 30);
+    const auto father2 = world.createPerson("Father2", Gender::Male, 30);
+    const auto secondFamily = world.createFamily(mother2, father2, "Second");
+
+    EXPECT_NE(firstFamily, secondFamily);
+}
+
+
+TEST(MarriageSystemTest, SameAgeEligibleAdultsCanMarry) {
+    World world;
+    const auto maleId = world.createPerson("Adam", Gender::Male, 25);
+    const auto femaleId = world.createPerson("Eve", Gender::Female, 25);
+    ftree::core::SimulationConfig config;
+    ftree::core::Random random(42);
+
+    EXPECT_TRUE(ftree::simulation::MarriageSystem::tryMarry(
+        world, maleId, femaleId, config, random, "Example"));
+    EXPECT_NE(world.getPerson(maleId)->familyId, 0u);
+    EXPECT_EQ(world.getPerson(maleId)->familyId,
+              world.getPerson(femaleId)->familyId);
+}
+
+TEST(MarriageSystemTest, CloseRelativesCannotMarry) {
+    World world;
+    const auto maleId = world.createPerson("Adam", Gender::Male, 25);
+    const auto femaleId = world.createPerson("Eve", Gender::Female, 25);
+    world.getPersonRef(maleId).motherId = 99;
+    world.getPersonRef(femaleId).motherId = 99;
+    ftree::core::SimulationConfig config;
+    ftree::core::Random random(42);
+
+    EXPECT_FALSE(ftree::simulation::MarriageSystem::tryMarry(
+        world, maleId, femaleId, config, random, "Example"));
+    EXPECT_EQ(world.getPerson(maleId)->familyId, 0u);
+    EXPECT_EQ(world.getPerson(femaleId)->familyId, 0u);
+}
+
+TEST(MarriageSystemTest, ProcessMarriagesCreatesAtMostOneFamilyPerPerson) {
+    World world;
+    world.createPerson("Adam1", Gender::Male, 25);
+    world.createPerson("Adam2", Gender::Male, 25);
+    world.createPerson("Eve1", Gender::Female, 25);
+    world.createPerson("Eve2", Gender::Female, 25);
+    ftree::core::SimulationConfig config;
+    ftree::core::Random random(42);
+    ftree::core::NameDatabase names;
+
+    const int marriages = ftree::simulation::MarriageSystem::processMarriages(
+        world, config, random, names);
+
+    EXPECT_EQ(marriages, 2);
+    int marriedPeople = 0;
+    for (const auto& [id, person] : world.getAllPeople()) {
+        (void)id;
+        if (person.familyId != 0) {
+            ++marriedPeople;
+        }
+    }
+    EXPECT_EQ(marriedPeople, 4);
+}
+
+
+TEST(MarriageSystemTest, AdultChildCanFormOwnFamily) {
+    World world;
+    const auto motherId = world.createPerson("Mother", Gender::Female, 50);
+    const auto fatherId = world.createPerson("Father", Gender::Male, 50);
+    const auto parentsFamilyId = world.createFamily(motherId, fatherId, "Parents");
+    const auto childId = world.createPerson("Child", Gender::Male, 25);
+    world.getFamilyRef(parentsFamilyId).childrenIds.push_back(childId);
+    const auto partnerId = world.createPerson("Partner", Gender::Female, 25);
+
+    ftree::core::SimulationConfig config;
+    ftree::core::Random random(42);
+    ASSERT_TRUE(ftree::simulation::MarriageSystem::tryMarry(
+        world, childId, partnerId, config, random, "NewFamily"));
+
+    EXPECT_EQ(world.getPerson(childId)->familyId,
+              world.getPerson(partnerId)->familyId);
+    EXPECT_EQ(world.getPerson(childId)->familyId, 2u);
+    EXPECT_TRUE(world.getFamily(parentsFamilyId)->childrenIds.size() == 1u);
 }

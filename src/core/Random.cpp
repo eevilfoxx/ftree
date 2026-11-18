@@ -1,16 +1,13 @@
 #include "core/Random.hpp"
 #include <random>
-#include <chrono>
+#include <stdexcept>
 
 namespace ftree::core {
 
-Random::Random(unsigned seed) : engine_(seed) {}
+Random::Random(unsigned seed) : engine_(seed), seed_(seed) {}
 
-Random::Random() {
-    auto now = std::chrono::high_resolution_clock::now();
-    auto ns = static_cast<unsigned int>(std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count());
-    engine_(static_cast<unsigned int>(ns));
-}
+Random::Random()
+    : Random(std::random_device{}()) {}
 
 int Random::randomInt(int min, int max) {
     if (min > max) throw std::invalid_argument("randomInt: min > max");

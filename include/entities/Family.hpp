@@ -16,7 +16,7 @@ public:
     std::shared_ptr<Person> getMother() const { return mother.lock(); }
     std::shared_ptr<Person> getFather() const { return father.lock(); }
     std::vector<std::shared_ptr<Person>> getChildren() const;
-    std::string getSurname() const { return surname; }
+    const std::string& getSurname() const { return surname; }
     
     // Сеттеры
     void setSurname(const std::string& surname) { this->surname = surname; }

@@ -1,19 +1,22 @@
 #include "simulation/AgingSystem.hpp"
-#include "core/Random.hpp"
 
 namespace ftree::simulation {
 
-void AgingSystem::ageAllLiving(World& world) {
-    auto living = world.getLivingPeople();
-    for (PersonId id : living) {
-        auto& person = world.getPersonRef(id);
-        person.incrementAge();
+void AgingSystem::ageAllLiving(domain::World& world) {
+    for (domain::PersonId id : world.getLivingPeople()) {
+        agePerson(world, id);
     }
 }
 
-void AgingSystem::agePerson(World& world, PersonId id) {
-    if (world.personExists(id)) {
-        auto& person = world.getPersonRef(id);
-        person.incrementAge();  // Already checks if alive
+void AgingSystem::agePerson(domain::World& world, domain::PersonId id) {
+    if (!world.personExists(id)) {
+        return;
+    }
+
+    auto& person = world.getPersonRef(id);
+    if (person.alive) {
+        ++person.age;
     }
 }
+
+} // namespace ftree::simulation

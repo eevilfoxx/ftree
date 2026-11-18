@@ -54,3 +54,5 @@ void Camera::reset() {
 sf::Vector2f Camera::getWorldPos(sf::Vector2i pixelPos) const {
     return window_.mapPixelToCoords(pixelPos, view_);
 }
+
+}

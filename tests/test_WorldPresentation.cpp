@@ -17,7 +17,7 @@ PersonId aliceId;
 PersonId bobId;
 PersonId charlieId;
 PersonId dianaId;
-PersonId eveId;
+PersonId evanId;
 FamilyId fam1Id;
 FamilyId fam2Id;
 
@@ -28,10 +28,10 @@ void initTestWorld() {
     bobId = testWorld.createPerson("Bob", ftree::domain::Gender::Male, 35);
     charlieId = testWorld.createPerson("Charlie", ftree::domain::Gender::Male, 25);
     dianaId = testWorld.createPerson("Diana", ftree::domain::Gender::Female, 28);
-    eveId = testWorld.createPerson("Eve", ftree::domain::Gender::Female, 32);
-    testWorld.killPerson(dianaId);
+    evanId = testWorld.createPerson("Evan", ftree::domain::Gender::Male, 32);
     fam1Id = testWorld.createFamily(aliceId, bobId, "Smith");
-    fam2Id = testWorld.createFamily(dianaId, eveId, "Johnson");
+    fam2Id = testWorld.createFamily(dianaId, evanId, "Johnson");
+    testWorld.killPerson(dianaId);
     testWorld.getFamilyRef(fam1Id).childrenIds.push_back(charlieId);
 }
 
@@ -120,8 +120,3 @@ TEST_F(WorldPresentationFixture, GetPersonDataForDeadPerson) {
     EXPECT_TRUE(pd.isDeceased);
 }
 
-// Google Test main function
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

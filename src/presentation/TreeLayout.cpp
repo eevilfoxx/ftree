@@ -92,3 +92,4 @@ bool checkHorizontalOverlap(
     
     return (a.x < bRight && aRight > b.x);
 }
+}

@@ -1,0 +1,19 @@
+Start testing: Nov 18 08:18 +07
+----------------------------------------------------------
+Unable to find executable: FamilyTreeTests_NOT_BUILT
+1/1 Testing: FamilyTreeTests_NOT_BUILT
+1/1 Test: FamilyTreeTests_NOT_BUILT
+Command: ""
+Directory: /home/evilfox/ftree/build2
+"FamilyTreeTests_NOT_BUILT" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"FamilyTreeTests_NOT_BUILT" end time: Nov 18 08:18 +07
+"FamilyTreeTests_NOT_BUILT" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 18 08:18 +07

@@ -1,5 +1,7 @@
 #include "entities/Family.hpp"
 #include <algorithm>
+#include <utility>
+#include <stdexcept>
 
 #include <managers/NameManager.hpp>
 
@@ -18,10 +20,32 @@ std::vector<std::shared_ptr<Person>> Family::getChildren() const {
 }
 
 void Family::addChild(std::shared_ptr<Person> child) {
-    if (child) {
-        children.push_back(child);
-        child->setFamily(shared_from_this());
+    if (!child || hasChild(child)
+        || child == getMother() || child == getFather()) {
+        return;
     }
+
+    auto self = weak_from_this().lock();
+    if (!self) {
+        throw std::logic_error("Family must be owned by std::shared_ptr before adding children");
+    }
+
+    if (auto previousFamily = child->getFamily()) {
+        if (previousFamily.get() != this) {
+            previousFamily->removeChild(child);
+        }
+    }
+
+    // Discard expired entries while keeping the family's live children.
+    children.erase(
+        std::remove_if(children.begin(), children.end(),
+            [](const std::weak_ptr<Person>& weakChild) {
+                return weakChild.expired();
+            }),
+        children.end());
+
+    children.emplace_back(child);
+    child->setFamily(std::move(self));
 }
 
 void Family::removeChild(std::shared_ptr<Person> child) {

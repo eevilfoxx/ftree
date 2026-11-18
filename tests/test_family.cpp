@@ -99,3 +99,41 @@ TEST_F(FamilyTest, SetSurname) {
     family->setSurname("Testov");
     EXPECT_EQ(family->getSurname(), "Testov");
 }
+
+TEST(FamilyTest, AddingSameChildTwiceDoesNotDuplicateMembership) {
+    auto mother = std::make_shared<Person>(1, Gender::Female, 30);
+    auto father = std::make_shared<Person>(2, Gender::Male, 32);
+    auto family = std::make_shared<Family>(1, mother, father);
+    auto child = std::make_shared<Person>(3, Gender::Female, 0);
+
+    family->addChild(child);
+    family->addChild(child);
+
+    EXPECT_EQ(family->getChildren().size(), 1u);
+}
+
+TEST(FamilyTest, MovingChildRemovesItFromPreviousFamily) {
+    auto mother = std::make_shared<Person>(1, Gender::Female, 30);
+    auto father = std::make_shared<Person>(2, Gender::Male, 32);
+    auto firstFamily = std::make_shared<Family>(1, mother, father);
+    auto secondFamily = std::make_shared<Family>(2, mother, father);
+    auto child = std::make_shared<Person>(3, Gender::Female, 0);
+
+    firstFamily->addChild(child);
+    secondFamily->addChild(child);
+
+    EXPECT_TRUE(firstFamily->getChildren().empty());
+    ASSERT_EQ(secondFamily->getChildren().size(), 1u);
+    EXPECT_EQ(child->getFamily(), secondFamily);
+}
+
+TEST(FamilyTest, ParentCannotAlsoBeAddedAsChild) {
+    auto mother = std::make_shared<Person>(1, Gender::Female, 30);
+    auto father = std::make_shared<Person>(2, Gender::Male, 32);
+    auto family = std::make_shared<Family>(1, mother, father);
+
+    family->addChild(mother);
+    family->addChild(father);
+
+    EXPECT_TRUE(family->getChildren().empty());
+}

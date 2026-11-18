@@ -1,37 +1,45 @@
 #include "simulation/DeathSystem.hpp"
 
+
+
+#include <algorithm>
+#include <cmath>
+#include <stdexcept>
+
 namespace ftree::simulation {
 
-// Process deaths for all living people using the formula:
-// P = mortality_a * exp(mortality_b * age)
-int DeathSystem::processDeaths(World& world, double mortality_a, double mortality_b) {
+int DeathSystem::processDeaths(domain::World& world,
+                               double mortality_a,
+                               double mortality_b,
+                               core::Random& random) {
+    if (!std::isfinite(mortality_a) || !std::isfinite(mortality_b)
+        || mortality_a < 0.0 || mortality_b < 0.0) {
+        throw std::invalid_argument("Mortality parameters must be finite and non-negative");
+    }
+
     int deaths = 0;
-    auto living = world.getLivingPeople();
-    
-    for (PersonId id : living) {
-        auto& person = world.getPersonRef(id);
-        // Calculate death probability: P = mortality_a * exp(mortality_b * age)
-        double deathProb = mortality_a * std::exp(mortality_b * person.age);
-        
-        // For deterministic behavior with fixed seed, we use a counter-based approach
-        // The actual probabilistic check happens at the annual cycle level
-        // Here we just identify who should be checked for death
-        // The actual random decision happens in the annual cycle
-        
-        // For now, just count and return - the integration will handle the RNG
-        // But we need to actually kill people, so let's use a simple approach:
-        // If deathProb > 0, we'll use a deterministic counter-based method
-        // For test reliability with fixed seed:
-        static unsigned int death_seed = 0;
-        death_seed++;
-        
-        // Mark for death if the probability is high enough based on the counter
-        // This is a simplification - the full RNG integration is in the annual cycle
-        if (death_seed % 1000 == 0 && deathProb > 0.001) {
-            world.killPerson(id);
-            deaths++;
+
+    for (domain::PersonId id : world.getLivingPeople()) {
+        const auto& person = world.getPersonRef(id);
+        const double rawProbability =
+            mortality_a * std::exp(mortality_b * static_cast<double>(person.age));
+        const double deathProbability =
+            std::clamp(rawProbability, 0.0, 1.0);
+
+        if (random.randomDouble(0.0, 1.0)
+            < deathProbability) {
+            killPerson(world, id);
+            ++deaths;
         }
     }
-    
+
     return deaths;
 }
+
+void DeathSystem::killPerson(domain::World& world, domain::PersonId id) {
+    if (world.personExists(id)) {
+        world.killPerson(id);
+    }
+}
+
+} // namespace ftree::simulation

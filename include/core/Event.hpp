@@ -8,7 +8,12 @@
 #include <optional>
 #include <memory>
 
+#include "domain/Person.hpp"
+
 namespace ftree::core {
+
+using domain::PersonId;
+using domain::FamilyId;
 
 // Type-safe event data structures
 struct PersonBornData {

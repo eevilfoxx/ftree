@@ -68,7 +68,7 @@ void Visualizer::handleEvents() {
                 
             case sf::Event::MouseMoved: {
                 sf::Vector2f worldPos = camera_.getWorldPos(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
-                int hoveredId = scene_.getPersonAtPosition(worldPos, camera_.getZoomLevel());
+                int hoveredId = scene_.getPersonAtPosition(worldPos);
                 scene_.setHoveredPerson(hoveredId);
                 break;
             }
@@ -76,7 +76,7 @@ void Visualizer::handleEvents() {
             case sf::Event::MouseButtonPressed:
                 if (event.mouseButton.button == sf::Mouse::Left) {
                     sf::Vector2f worldPos = camera_.getWorldPos(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
-                    int clickedId = scene_.getPersonAtPosition(worldPos, camera_.getZoomLevel());
+                    int clickedId = scene_.getPersonAtPosition(worldPos);
                     scene_.setSelectedPerson(clickedId);
                 }
                 break;
@@ -108,6 +108,8 @@ void Visualizer::handleKeyboardEvents(const sf::Event& event) {
             break;
         case sf::Keyboard::Period:
             camera_.zoom(0);
+            break;
+        default:
             break;
     }
 }

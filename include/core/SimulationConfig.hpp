@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
 #include <stdexcept>
 #include <vector>
 
@@ -12,7 +11,7 @@ struct SimulationConfig {
     int min_founder_age = 20;
     int max_founder_age = 40;
     
-    // Mortality (not fully implemented in this stage, but config preserved)
+    // Mortality parameters
     double mortality_a = 0.001;
     double mortality_b = 0.0693;
     

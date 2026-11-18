@@ -2,6 +2,7 @@
 
 #include "domain/Person.hpp"
 #include "domain/World.hpp"
+#include "core/Random.hpp"
 
 namespace ftree::simulation {
 
@@ -11,7 +12,7 @@ class DeathSystem {
 public:
     // Process deaths for all living people in the world
     // Returns number of deaths processed
-    static int processDeaths(domain::World& world, double mortality_a, double mortality_b);
+    static int processDeaths(domain::World& world, double mortality_a, double mortality_b, core::Random& random);
 
     // Kill a specific person (marks dead, preserves genealogy)
     static void killPerson(domain::World& world, domain::PersonId id);

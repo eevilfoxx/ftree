@@ -1,5 +1,7 @@
 #include "vizualization/Camera.hpp"
 
+#include <algorithm>
+
 Camera::Camera(sf::RenderWindow& window) 
     : window_(window), view_(window.getDefaultView()), zoomLevel_(1.0f) {}
 
@@ -31,6 +33,8 @@ void Camera::handleMouseEvents(const sf::Event& event) {
         case sf::Event::Resized:
             view_.setSize(event.size.width, event.size.height);
             break;
+        default:
+            break;
     }
 }
 
@@ -40,8 +44,9 @@ void Camera::handleKeyboardEvents(const sf::Event& event) {
         break;
 
         case sf::Keyboard::M:
-        break;
-
+            break;
+        default:
+            break;
     }
 }
 

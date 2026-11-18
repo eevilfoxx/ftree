@@ -45,3 +45,5 @@ private:
     sf::Vector2i lastMousePos_;
     sf::Vector2f offset_;
 };
+
+}

@@ -1,22 +1,28 @@
 #pragma once
 
-#include "domain/Person.hpp"
+#include "core/Random.hpp"
+#include "core/SimulationConfig.hpp"
+#include "core/NameDatabase.hpp"
 #include "domain/World.hpp"
 
 namespace ftree::simulation {
 
-// MarriageSystem handles marriage logic
 class MarriageSystem {
 public:
-    // Try to marry two eligible persons
-    // Returns true if marriage was created
-    static bool tryMarry(domain::World& world, domain::PersonId maleId, domain::PersonId femaleId);
+    // Match eligible single adults and create families.
+    // Returns the number of marriages created during this step.
+    static int processMarriages(domain::World& world,
+                                const core::SimulationConfig& config,
+                                core::Random& random,
+                                const core::NameDatabase& names);
 
-    // Get minimum marriage age
-    static int getMinMarriageAge();
-
-    // Get maximum person age
-    static int getMaxPersonAge();
+    // Attempt one male/female match using the configured age-difference probability.
+    static bool tryMarry(domain::World& world,
+                         domain::PersonId maleId,
+                         domain::PersonId femaleId,
+                         const core::SimulationConfig& config,
+                         core::Random& random,
+                         const std::string& surname);
 };
 
-}
+} // namespace ftree::simulation

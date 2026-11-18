@@ -1,6 +1,12 @@
 #include "application/Application.hpp"
 #include <SFML/Graphics.hpp>
+#include "simulation/PregnancySystem.hpp"
+#include "simulation/MarriageSystem.hpp"
 #include <fstream>
+#include <filesystem>
+#include <algorithm>
+#include <limits>
+#include <stdexcept>
 #include <iostream>
 
 namespace ftree::application {
@@ -18,15 +24,28 @@ Application::~Application() = default;
 
 bool Application::initialize(const std::string& configPath) {
     // 1. Load configuration
-    config_ = std::make_unique<core::SimulationConfig>();
-    config_->loadFromFile(configPath);
+    clock_->reset();
+    config_ = std::make_unique<core::SimulationConfig>(
+        core::SimulationConfig::loadFromFile(configPath));
 
     // 2. Load names
     rng_ = std::make_unique<core::Random>(42);  // fixed seed for reproducibility
 
-    nameDb_->loadMaleNames("config/male_names.txt");
-    nameDb_->loadFemaleNames("config/female_names.txt");
-    nameDb_->loadSurnames("config/surnames.txt");
+    const std::filesystem::path configDirectory =
+        std::filesystem::path(configPath).parent_path();
+    const auto resolveConfigPath = [&configDirectory](const std::string& path) {
+        const std::filesystem::path configuredPath(path);
+        return (configuredPath.is_absolute()
+            ? configuredPath
+            : configDirectory / configuredPath).lexically_normal().string();
+    };
+
+    nameDb_->loadMaleNames(resolveConfigPath(
+        config_->getString("male_names_file", "male_names.txt")));
+    nameDb_->loadFemaleNames(resolveConfigPath(
+        config_->getString("female_names_file", "female_names.txt")));
+    nameDb_->loadSurnames(resolveConfigPath(
+        config_->getString("surnames_file", "surnames.txt")));
 
     // 3. Create World
     world_ = std::make_unique<domain::World>();
@@ -48,73 +67,56 @@ bool Application::initialize(const std::string& configPath) {
 }
 
 void Application::setup() {
-    // Create initial population - founders
-    // Age range: 20-40 as per config
-    int minAge = config_->getInt("min_founder_age", 20);
-    int maxAge = config_->getInt("max_founder_age", 40);
+    const int minAge = config_->min_founder_age;
+    const int maxAge = config_->max_founder_age;
 
-    // Create 4 founders: 2 males, 2 females
-    domain::PersonId m1 = world_->createPerson("John", domain::Gender::Male,
-                                              minAge + (maxAge - minAge) / 2);
-    domain::PersonId m2 = world_->createPerson("Mike", domain::Gender::Male, 32);
-    domain::PersonId f1 = world_->createPerson("Jane", domain::Gender::Female, 28);
-    domain::PersonId f2 = world_->createPerson("Mary", domain::Gender::Female, 31);
+    const auto male1 = world_->createPerson(
+        nameDb_->getRandomName(true), domain::Gender::Male,
+        rng_->randomInt(minAge, maxAge));
+    const auto male2 = world_->createPerson(
+        nameDb_->getRandomName(true), domain::Gender::Male,
+        rng_->randomInt(minAge, maxAge));
+    const auto female1 = world_->createPerson(
+        nameDb_->getRandomName(false), domain::Gender::Female,
+        rng_->randomInt(minAge, maxAge));
+    const auto female2 = world_->createPerson(
+        nameDb_->getRandomName(false), domain::Gender::Female,
+        rng_->randomInt(minAge, maxAge));
 
-    // Create families
-    domain::FamilyId fam1 = world_->createFamily(f1, m1, "Smith");
-    domain::FamilyId fam2 = world_->createFamily(f2, m2, "Jones");
+    world_->createFamily(female1, male1, nameDb_->getRandomSurname());
+    world_->createFamily(female2, male2, nameDb_->getRandomSurname());
 
-    // Initialize presentation data
     presentation_->getAllPeople(*world_);
     presentation_->getAllFamilies(*world_);
 }
 
 int Application::run(int years, bool headless) {
-    // Initialize only once; do not re-initialize if already done.
+    if (years < 0) {
+        throw std::invalid_argument("Number of simulation years cannot be negative");
+    }
+
     if (!config_ || !world_) {
-        initialize();
+        if (!initialize()) {
+            return 1;
+        }
     }
 
     visualizationEnabled_ = !headless && visualizationEnabled_;
 
-    // If headless and no window exists, ensure window_ stays null.
     if (headless) {
-        window_ = nullptr;
+        window_.reset();
     }
 
-    // Main loop
-    for (int y = 0; y < years; y++) {
-        // Simulation step
-        // 1. Aging
-        ftree::simulation::AgingSystem::ageAllLiving(*world_);
-
-        // 2. Deaths
-        ftree::simulation::DeathSystem::processDeaths(*world_,
-            config_->getDouble("mortality_a", 0.001),
-            config_->getDouble("mortality_b", 0.0693));
-
-        // 3. Marriages
-        // (would iterate over singles and try marriages)
-
-        // 4. Pregnancies
-        // (would iterate over families and try conceptions)
-
-        // 5. Births
-        ftree::simulation::BirthSystem::processBirths(*world_);
-
-        // 6. Statistics
-        int pop, families, children, adults, elders;
-        ftree::simulation::StatisticsSystem::collectStatistics(*world_, y + 1,
-            pop, families, children, adults, elders);
-
-        // Handle events (for visualization only)
-        if (!headless && window_) {
-            handleEvents();
+    for (int frame = 0; frame < years; ++frame) {
+        if (!isPaused_ || isAutoAdvance_) {
+            for (int step = 0; step < speed_; ++step) {
+                update();
+            }
         }
 
-        // Auto advance or pause handling
-        if (!isPaused_) {
-            // Could have speed control here
+        if (!headless && window_ && window_->isOpen()) {
+            handleEvents();
+            render();
         }
     }
 
@@ -130,7 +132,14 @@ void Application::resume() {
 }
 
 void Application::nextYear() {
-    clock_->nextYear();
+    update();
+}
+
+void Application::setSpeed(int speed) {
+    if (speed < 1) {
+        throw std::invalid_argument("Simulation speed must be at least 1");
+    }
+    speed_ = speed;
 }
 
 void Application::toggleAutoAdvance() {
@@ -182,19 +191,23 @@ void Application::handleEvents() {
                     // Reset camera
                     break;
                 case sf::Keyboard::Space:
-                    // Toggle pause
+                    isPaused_ = !isPaused_;
                     break;
                 case sf::Keyboard::Right:
-                    // Next year
+                    if (isPaused_) {
+                        nextYear();
+                    }
                     break;
                 case sf::Keyboard::A:
-                    // Toggle auto advance
+                    toggleAutoAdvance();
                     break;
                 case sf::Keyboard::Up:
-                    // Increase speed
+                    if (speed_ < std::numeric_limits<int>::max()) {
+                        ++speed_;
+                    }
                     break;
                 case sf::Keyboard::Down:
-                    // Decrease speed
+                    speed_ = std::max(1, speed_ - 1);
                     break;
                 case sf::Keyboard::C:
                     // Toggle controls hint
@@ -207,6 +220,42 @@ void Application::handleEvents() {
             }
         }
     }
+}
+
+void Application::update() {
+    if (!world_ || !config_ || !rng_ || !clock_) {
+        return;
+    }
+
+    clock_->nextYear();
+
+    ftree::simulation::AgingSystem::ageAllLiving(*world_);
+    ftree::simulation::DeathSystem::processDeaths(
+        *world_, config_->mortality_a, config_->mortality_b, *rng_);
+
+    ftree::simulation::MarriageSystem::processMarriages(
+        *world_, *config_, *rng_, *nameDb_);
+
+    for (const auto& [familyId, family] : world_->getAllFamilies()) {
+        (void)familyId;
+        ftree::simulation::PregnancySystem::tryConceive(
+            *world_, family.motherId, family.fatherId,
+            config_->base_conception_prob, *rng_);
+    }
+
+    ftree::simulation::BirthSystem::processBirths(
+        *world_, config_->prob_triple, config_->prob_twin, *rng_);
+
+    int population = 0;
+    int families = 0;
+    int children = 0;
+    int adults = 0;
+    int elders = 0;
+    ftree::simulation::StatisticsSystem::collectStatistics(
+        *world_, clock_->currentYear(),
+        population, families, children, adults, elders);
+    ftree::simulation::StatisticsSystem::printStatistics(
+        clock_->currentYear(), population, families, children, adults, elders);
 }
 
 void Application::render() {

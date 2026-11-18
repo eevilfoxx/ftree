@@ -33,7 +33,7 @@ private:
     std::shared_ptr<PopulationManager> populationManager_;
     std::shared_ptr<IPersonRepository> personRepository_;
     
-    bool showControls_;
+    bool showControls_ = true;
 
     void handleKeyboardEvents(const sf::Event& event);
 };

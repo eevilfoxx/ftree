@@ -48,7 +48,9 @@ std::vector<std::shared_ptr<Person>> PopulationManager::findEligiblePartners(std
     int minMarriageAge = config.getInt("min_marriage_age", 18);
     int maxPersonAge = config.getInt("max_person_age", 100);
 
-    if (person->getAge() < minMarriageAge || person->isMarried()) {
+    if (person->getAge() < minMarriageAge
+        || person->getAge() > maxPersonAge
+        || person->isMarried()) {
         return {};
     }
     
@@ -93,10 +95,19 @@ bool PopulationManager::areRelatives(std::shared_ptr<Person> p1, std::shared_ptr
     auto p1Father = p1->getFather();
     auto p2Mother = p2->getMother();
     auto p2Father = p2->getFather();
-    
+
+    // Direct parent-child relationships are close relatives too.
+    if ((p2Mother && p1->getUuid() == p2Mother->getUuid())
+        || (p2Father && p1->getUuid() == p2Father->getUuid())
+        || (p1Mother && p2->getUuid() == p1Mother->getUuid())
+        || (p1Father && p2->getUuid() == p1Father->getUuid())) {
+        return true;
+    }
+
+    // Siblings, including half-siblings, share at least one parent.
     if (p1Mother && p2Mother && p1Mother->getUuid() == p2Mother->getUuid()) return true;
     if (p1Father && p2Father && p1Father->getUuid() == p2Father->getUuid()) return true;
-    
+
     return false;
 }
 

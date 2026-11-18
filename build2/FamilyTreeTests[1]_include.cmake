@@ -1,0 +1,5 @@
+if(EXISTS "/home/evilfox/ftree/build2/FamilyTreeTests[1]_tests.cmake")
+  include("/home/evilfox/ftree/build2/FamilyTreeTests[1]_tests.cmake")
+else()
+  add_test(FamilyTreeTests_NOT_BUILT FamilyTreeTests_NOT_BUILT)
+endif()

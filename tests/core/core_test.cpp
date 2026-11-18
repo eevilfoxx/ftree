@@ -5,6 +5,7 @@
 #include "core/Event.hpp"
 #include "core/SimulationClock.hpp"
 #include <iostream>
+#include <algorithm>
 
 using namespace ftree::core;
 
@@ -91,21 +92,21 @@ TEST(RandomTest, Ranges) {
 TEST(NameDatabaseTest, LoadMaleNames) {
     NameDatabase db;
     db.loadMaleNames("config/male_names.txt");
-    EXPECT_GT(db.maleNames_.size(), 0);
+    EXPECT_GT(db.maleNameCount(), 0u);
     EXPECT_TRUE(db.areNamesLoaded());
 }
 
 TEST(NameDatabaseTest, LoadFemaleNames) {
     NameDatabase db;
     db.loadFemaleNames("config/female_names.txt");
-    EXPECT_GT(db.femaleNames_.size(), 0);
+    EXPECT_GT(db.femaleNameCount(), 0u);
     EXPECT_TRUE(db.areNamesLoaded());
 }
 
 TEST(NameDatabaseTest, LoadSurnames) {
     NameDatabase db;
     db.loadSurnames("config/surnames.txt");
-    EXPECT_GT(db.surnames_.size(), 0);
+    EXPECT_GT(db.surnameCount(), 0u);
     EXPECT_TRUE(db.areSurnamesLoaded());
 }
 
@@ -113,9 +114,9 @@ TEST(NameDatabaseTest, NoDuplicateLoading) {
     NameDatabase db;
     // Load same file twice - should not duplicate
     db.loadMaleNames("config/male_names.txt");
+    const auto initialCount = db.maleNameCount();
     db.loadMaleNames("config/male_names.txt");
-    // Size should not double
-    EXPECT_LE(db.maleNames_.size(), 200);  // Config has 100 names
+    EXPECT_EQ(db.maleNameCount(), initialCount);
 }
 
 TEST(NameDatabaseTest, GetRandomName) {
@@ -196,11 +197,7 @@ TEST(IntegrationTest, CoreSetup) {
     
     // Verify components are working
     EXPECT_GT(config.base_conception_prob, 0.0);
-    EXPECT_GT(nameDb.maleNames_.size(), 0);
+    EXPECT_GT(nameDb.maleNameCount(), 0u);
     EXPECT_EQ(clock.currentYear(), 0);
 }
 
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

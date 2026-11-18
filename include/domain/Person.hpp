@@ -45,25 +45,32 @@ public:
            PersonId motherId = 0, PersonId fatherId = 0,
            FamilyId familyId = 0)
         : id_(id), name_(name), gender_(gender), age_(age),
-          alive_(alive), pregnant_(pregnant),
+          alive_(alive),
+          pregnant_(alive && gender == Gender::Female && pregnant),
           motherId_(motherId), fatherId_(fatherId), familyId_(familyId) {}
 
-    // Methods
-    void incrementAge() { if (alive_) { age_++; } }
-    
-    void setPregnant(bool isPregnant) { if (gender_ == Gender::Female) pregnant_ = isPregnant; }
-    
-    void setAlive(bool isAlive) { alive_ = isAlive; if (!alive_) pregnant_ = false; }
-    
-    bool tryDie() {
-        static int death_attempts = 0;
-        death_attempts++;
-        if (death_attempts > 1000) {
-            alive_ = false;
-            pregnant_ = false;
-            return true;
+    // State transitions. Random decisions belong to simulation systems.
+    void incrementAge() {
+        if (alive_) {
+            ++age_;
         }
-        return false;
+    }
+
+    void setPregnant(bool isPregnant) {
+        pregnant_ = isPregnant && alive_ && gender_ == Gender::Female;
+    }
+
+    void setAlive(bool isAlive) {
+        alive_ = isAlive;
+        if (!alive_) {
+            pregnant_ = false;
+        }
+    }
+
+    // Eligibility only; probability and random sampling belong to PregnancySystem.
+    bool canConceive() const {
+        return alive_ && gender_ == Gender::Female && !pregnant_
+            && age_ >= 18 && age_ <= 45;
     }
 
     // New features

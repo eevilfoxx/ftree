@@ -1,9 +1,8 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <vector>
-#include <unordered_set>
-#include <memory>
 
 namespace ftree::core {
 
@@ -28,7 +27,6 @@ private:
     std::vector<std::string> maleNames_;
     std::vector<std::string> femaleNames_;
     std::vector<std::string> surnames_;
-    std::unordered_set<std::string> loadedFileHashes_;  // To detect re-loading same file
 };
 
 } // namespace ftree::core
