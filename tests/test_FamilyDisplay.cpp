@@ -17,7 +17,7 @@ TEST(FamilyDisplayTest, DefaultConstruction) {
     EXPECT_EQ(fd.memberCount, 0);
 }
 
-TEST(FamilyDisplay, AggregateInitialization) {
+TEST(FamilyDisplayTest, AggregateInitialization) {
     FamilyDisplay fd{1, 2, 3, {4, 5}, "Smith", 10, 5};
     EXPECT_EQ(fd.id, 1u);
     EXPECT_EQ(fd.motherId, 2u);
@@ -30,7 +30,7 @@ TEST(FamilyDisplay, AggregateInitialization) {
     EXPECT_EQ(fd.memberCount, 5);
 }
 
-TEST(FamilyDisplay, Setters) {
+TEST(FamilyDisplayTest, Setters) {
     FamilyDisplay fd;
     fd.id = 1;
     fd.motherId = 2;
