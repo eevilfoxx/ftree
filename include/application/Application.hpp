@@ -1,78 +1,70 @@
 #pragma once
 
-#include "domain/World.hpp"
-#include "core/SimulationConfig.hpp"
+#include "application/IVisualizer.hpp"
+#include "core/NameDatabase.hpp"
 #include "core/Random.hpp"
 #include "core/SimulationClock.hpp"
-#include "core/NameDatabase.hpp"
-#include "presentation/WorldPresentation.hpp"
-#include "simulation/AgingSystem.hpp"
-#include "simulation/DeathSystem.hpp"
-#include "simulation/BirthSystem.hpp"
-#include "simulation/StatisticsSystem.hpp"
+#include "core/SimulationConfig.hpp"
+#include "domain/World.hpp"
+#include "presentation/PersonDisplay.hpp"
+
 #include <memory>
 #include <string>
-
-// Forward declare SFML types to avoid mandatory SFML dependency in header.
-// SFML is optional; the full definition is only needed in Application.cpp.
-namespace sf {
-class RenderWindow;
-}
 
 namespace ftree::application {
 
 class Application {
 public:
-    // Constructor - enableVisualization=true means graphics window is created
-    explicit Application(bool enableVisualization = true);
+    explicit Application(std::unique_ptr<IVisualizer> visualizer = nullptr);
     ~Application();
 
-    // Initialize the application (loads config, names, creates world)
     bool initialize(const std::string& configPath = "config/simulation.cfg");
 
-    // Run the simulation for the given number of years.
     int runVisual();
     int runHeadless(int years);
 
-    // Simulation control
     void pause();
     void resume();
     void nextYear();
     void toggleAutoAdvance();
-    void setSpeed(double speed); // Sets simulation speed multiplier.
+    void setSpeed(double speed);
 
-    // State queries
     int getCurrentYear() const;
     bool isPaused() const;
     bool isAutoAdvance() const;
     double getSpeed() const;
 
-    // Person data
     presentation::PersonDisplay getPersonData(domain::PersonId id) const;
 
-    // Statistics
-    void getStatistics(int& population, int& families,
-                       int& children, int& adults, int& elders) const;
+    void getStatistics(
+        int& population,
+        int& families,
+        int& children,
+        int& adults,
+        int& elders
+    ) const;
 
 private:
+    static constexpr double MIN_SIMULATION_SPEED = 0.0625;
+    static constexpr double MAX_SIMULATION_SPEED = 64.0;
+    static constexpr double SIMULATION_SPEED_MULTIPLIER = 2.0;
+    static constexpr double MAX_FRAME_TIME = 0.25;
+
     std::unique_ptr<core::SimulationConfig> config_;
     std::unique_ptr<core::Random> rng_;
     std::unique_ptr<core::SimulationClock> clock_;
     std::unique_ptr<core::NameDatabase> nameDb_;
     std::unique_ptr<domain::World> world_;
-    std::unique_ptr<presentation::WorldPresentation> presentation_;
-    std::unique_ptr<sf::RenderWindow> window_;  // null in headless mode
-    bool visualizationEnabled_;
-    bool isPaused_;
-    bool isAutoAdvance_;
-    // Simulation speed multiplier: 1 = 1 year per second.
-    double speed_;
+    std::unique_ptr<IVisualizer> visualizer_;
 
-    // Internal methods
+    bool isPaused_ = false;
+    bool isAutoAdvance_ = false;
+    double speed_ = 1.0;
+
     void setup();
-    void handleEvents();
     void update();
-    void render();
+    void updateVisualization();
+    void processVisualizationCommands();
 };
 
 } // namespace ftree::application

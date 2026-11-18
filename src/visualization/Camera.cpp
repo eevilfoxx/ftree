@@ -2,92 +2,93 @@
 
 #include <algorithm>
 
-Camera::Camera(sf::RenderWindow& window) 
-    : window_(window), view_(window.getDefaultView()), zoomLevel_(1.0f) {}
+namespace ftree::visualization {
 
-void Camera::handleMouseEvents(const sf::Event& event) {
-    switch (event.type) {
-        case sf::Event::MouseButtonPressed:
-            if (event.mouseButton.button == sf::Mouse::Left) {
-                isDragging_ = true;
-                lastMousePos_ = sf::Vector2i(event.mouseButton.x, event.mouseButton.y);
-            }
-            break;
-            
-        case sf::Event::MouseButtonReleased:
-            if (event.mouseButton.button == sf::Mouse::Left) {
-                isDragging_ = false;
-            }
-            break;
-            
-        case sf::Event::MouseMoved:
-            if (isDragging_) {
-                handleMouseDrag(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
-            }
-            break;
-            
-        case sf::Event::MouseWheelScrolled:
-            handleMouseWheel(event.mouseWheelScroll.delta);
-            break;
-            
-        case sf::Event::Resized:
-            view_.setSize(event.size.width, event.size.height);
-            break;
-        default:
-            break;
-    }
+Camera::Camera(sf::RenderWindow& window)
+    : window_(window),
+      view_(window.getDefaultView()),
+      center_(view_.getCenter()),
+      baseSize_(view_.getSize())
+{
 }
 
-void Camera::handleKeyboardEvents(const sf::Event& event) {
-    switch (event.key.code) {
-        case sf::Keyboard::N:
+void Camera::handleEvent(const sf::Event& event)
+{
+    switch (event.type) {
+    case sf::Event::MouseButtonPressed:
+        if (event.mouseButton.button == sf::Mouse::Left) {
+            isPanning_ = true;
+            lastMousePos_ = {event.mouseButton.x, event.mouseButton.y};
+        }
         break;
 
-        case sf::Keyboard::M:
-            break;
-        default:
-            break;
+    case sf::Event::MouseButtonReleased:
+        if (event.mouseButton.button == sf::Mouse::Left) {
+            isPanning_ = false;
+        }
+        break;
+
+    case sf::Event::MouseMoved:
+        if (isPanning_) {
+            const sf::Vector2i currentPos(event.mouseMove.x, event.mouseMove.y);
+            const sf::Vector2f oldWorld = window_.mapPixelToCoords(lastMousePos_, view_);
+            const sf::Vector2f newWorld = window_.mapPixelToCoords(currentPos, view_);
+            center_ -= newWorld - oldWorld;
+            lastMousePos_ = currentPos;
+        }
+        break;
+
+    case sf::Event::MouseWheelScrolled:
+        if (event.mouseWheelScroll.delta > 0.0f) {
+            zoom(1.1f);
+        } else if (event.mouseWheelScroll.delta < 0.0f) {
+            zoom(1.0f / 1.1f);
+        }
+        break;
+
+    case sf::Event::KeyPressed:
+        if (event.key.code == sf::Keyboard::R) {
+            reset();
+        }
+        break;
+
+    case sf::Event::Resized:
+        baseSize_ = {
+            static_cast<float>(event.size.width),
+            static_cast<float>(event.size.height)
+        };
+        break;
+
+    default:
+        break;
     }
 }
 
-void Camera::handleMouseDrag(const sf::Vector2i& currentPos) {
-    sf::Vector2i delta = currentPos - lastMousePos_;
-    sf::Vector2f worldDelta = window_.mapPixelToCoords(delta, view_) - 
-                             window_.mapPixelToCoords(sf::Vector2i(0, 0), view_);
-    
-    offset_ -= worldDelta;
-    lastMousePos_ = currentPos;
+void Camera::update()
+{
+    view_.setSize(baseSize_.x / zoomLevel_, baseSize_.y / zoomLevel_);
+    view_.setCenter(center_);
+    window_.setView(view_);
 }
 
-void Camera::handleMouseWheel(float delta) {
-    if (delta > 0) {
-        zoomLevel_ *= 1.1f;
-    } else {
-        zoomLevel_ /= 1.1f;
-    }
-    zoomLevel_ = std::clamp(zoomLevel_, 0.1f, 5.0f);
-}
-
-void Camera::zoom(float delta) {
-    if (delta > 0) {
-        zoomLevel_ *= 1.1f;
-    } else {
-        zoomLevel_ /= 1.1f;
-    }
-    zoomLevel_ = std::clamp(zoomLevel_, 0.1f, 5.0f);
-}
-
-void Camera::update() {
-    view_ = window_.getDefaultView();
-    view_.setCenter(offset_);
-    view_.zoom(zoomLevel_);
-}
-
-void Camera::reset() {
-    offset_ = sf::Vector2f(0, 0);
+void Camera::reset()
+{
+    center_ = {0.0f, 0.0f};
     zoomLevel_ = 1.0f;
 }
 
-sf::Vector2f Camera::getWorldPos(const sf::Vector2i& pixelPos) const {
+void Camera::zoom(float factor)
+{
+    if (factor <= 0.0f) {
+        return;
+    }
+
+    zoomLevel_ = std::clamp(zoomLevel_ * factor, minZoom_, maxZoom_);
+}
+
+sf::Vector2f Camera::getWorldPos(const sf::Vector2i& pixelPos) const
+{
     return window_.mapPixelToCoords(pixelPos, view_);
 }
+
+} // namespace ftree::visualization

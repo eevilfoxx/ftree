@@ -50,6 +50,9 @@ set(FTREE_CORE_SOURCES
 
     src/utils/StatisticsService.cpp
     src/presentation/WorldPresentation.cpp
+    src/presentation/TreeLayout.cpp
+
+    src/application/Application.cpp
 )
 
 add_library(ftree_core STATIC ${FTREE_CORE_SOURCES})
@@ -58,7 +61,14 @@ target_include_directories(ftree_core PUBLIC
 )
 ftree_enable_warnings(ftree_core)
 
-# SFML is optional: the core library and its tests remain buildable headlessly.
+# The headless executable is always available and has no SFML dependency.
+add_executable(FamilyTreeHeadless
+    src/headless_main.cpp
+)
+target_link_libraries(FamilyTreeHeadless PRIVATE ftree_core)
+ftree_enable_warnings(FamilyTreeHeadless)
+
+# SFML is optional: visualization is built only when SFML is available.
 find_package(SFML 2.5 COMPONENTS graphics window system CONFIG QUIET)
 
 if(SFML_FOUND)
@@ -77,26 +87,35 @@ if(SFML_FOUND)
         endif()
     endforeach()
 
-    add_executable(FamilyTree
-        src/main.cpp
-        src/application/Application.cpp
-        src/visualization/Visualizer.cpp
+    add_library(ftree_visualization STATIC
+        src/visualization/SFMLVisualizer.cpp
         src/visualization/Camera.cpp
         src/visualization/UI.cpp
         src/visualization/Scene.cpp
     )
-
-    target_link_libraries(FamilyTree PRIVATE
+    target_include_directories(ftree_visualization PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    )
+    target_link_libraries(ftree_visualization PUBLIC
         ftree_core
         ${FTREE_SFML_TARGETS}
     )
+    ftree_enable_warnings(ftree_visualization)
+
+    add_executable(FamilyTree src/main.cpp)
+    target_link_libraries(FamilyTree PRIVATE
+        ftree_core
+        ftree_visualization
+    )
     ftree_enable_warnings(FamilyTree)
-    install(TARGETS FamilyTree DESTINATION bin)
+
+    install(TARGETS FamilyTree FamilyTreeHeadless DESTINATION bin)
 else()
     message(WARNING
         "SFML was not found: the graphical FamilyTree executable will not be built. "
-        "The ftree_core library and available tests can still be built."
+        "FamilyTreeHeadless, ftree_core, and available tests can still be built."
     )
+    install(TARGETS FamilyTreeHeadless DESTINATION bin)
 endif()
 
 if(BUILD_TESTING)
@@ -124,6 +143,7 @@ if(BUILD_TESTING)
             tests/test_PersonDisplay.cpp
             tests/test_FamilyDisplay.cpp
             tests/test_WorldPresentation.cpp
+            tests/test_TreeLayout.cpp
         )
 
         target_link_libraries(FamilyTreeTests PRIVATE

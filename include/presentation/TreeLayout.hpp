@@ -2,53 +2,29 @@
 
 #include "presentation/PersonDisplay.hpp"
 #include "presentation/FamilyDisplay.hpp"
+
 #include <vector>
-#include <map>
-#include <optional>
 
 namespace ftree::presentation {
 
-// Layout result for a node
 struct LayoutNode {
-    PersonId id;
-    float x = 0.f;
-    float y = 0.f;
-    float width = 0.f;
-    int height = 0;
-    bool hasCollision = false;
-    std::vector<LayoutNode> children;
+    PersonId id = 0;
+
+    float x = 0.0f;
+    float y = 0.0f;
+
+    float width = 150.0f;
+    float height = 30.0f;
 };
 
-// Calculate layout for a person and their descendants
-LayoutNode calculateLayout(
-    const PersonDisplay& person,
-    const FamilyDisplay& family,
-    int generation,
-    float nodeWidth,
-    float hSpacing,
-    float vSpacing,
-    const std::vector<LayoutNode>& parentSiblings = {}
-);
-
-// Calculate layouts for all people in a family
-std::vector<LayoutNode> calculateFamilyLayout(
-    const FamilyDisplay& family,
+// Рассчитывает расположение всех людей генеалогического дерева.
+// Координаты вычисляются на основании generationLevel
+// и родственных связей.
+std::vector<LayoutNode> calculateTreeLayout(
     const std::vector<PersonDisplay>& people,
-    float hSpacing = 80.f,
-    float vSpacing = 100.f
-);
-
-// Get the generation level for a person
-int getGenerationLevel(
-    PersonId id,
-    const std::vector<PersonDisplay>& people
-);
-
-// Check if two nodes overlap horizontally
-bool checkHorizontalOverlap(
-    const LayoutNode& a,
-    const LayoutNode& b,
-    float nodeWidth
+    const std::vector<FamilyDisplay>& families,
+    float horizontalSpacing = 80.0f,
+    float verticalSpacing = 100.0f
 );
 
 } // namespace ftree::presentation

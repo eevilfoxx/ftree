@@ -1,41 +1,44 @@
 #include "application/Application.hpp"
-#include <SFML/Graphics.hpp>
-#include "simulation/PregnancySystem.hpp"
+
+#include "presentation/WorldPresentation.hpp"
+#include "simulation/AgingSystem.hpp"
+#include "simulation/BirthSystem.hpp"
+#include "simulation/DeathSystem.hpp"
 #include "simulation/MarriageSystem.hpp"
-#include "visualization/VisualizationConfig.hpp"
-#include <fstream>
-#include <filesystem>
+#include "simulation/PregnancySystem.hpp"
+#include "simulation/StatisticsSystem.hpp"
+
 #include <algorithm>
-#include <limits>
-#include <stdexcept>
-#include <iostream>
 #include <chrono>
 #include <cmath>
+#include <filesystem>
+#include <iostream>
+#include <stdexcept>
+#include <utility>
 
 namespace ftree::application {
 
-Application::Application(bool enableVisualization)
-    : visualizationEnabled_(enableVisualization),
-      isPaused_(false),
-      isAutoAdvance_(false),
-      speed_(visualization::VisualizationConfig::INITIAL_SIMULATION_SPEED) {
-    clock_ = std::make_unique<core::SimulationClock>();
-    nameDb_ = std::make_unique<core::NameDatabase>();
+Application::Application(std::unique_ptr<IVisualizer> visualizer)
+    : clock_(std::make_unique<core::SimulationClock>()),
+      nameDb_(std::make_unique<core::NameDatabase>()),
+      visualizer_(std::move(visualizer))
+{
 }
 
 Application::~Application() = default;
 
-bool Application::initialize(const std::string& configPath) {
-    // 1. Load configuration
+bool Application::initialize(const std::string& configPath)
+{
     clock_->reset();
     config_ = std::make_unique<core::SimulationConfig>(
-        core::SimulationConfig::loadFromFile(configPath));
+        core::SimulationConfig::loadFromFile(configPath)
+    );
 
-    // 2. Load names
-    rng_ = std::make_unique<core::Random>(42);  // fixed seed for reproducibility
+    rng_ = std::make_unique<core::Random>(42);
 
     const std::filesystem::path configDirectory =
         std::filesystem::path(configPath).parent_path();
+
     const auto resolveConfigPath = [&configDirectory](const std::string& path) {
         const std::filesystem::path configuredPath(path);
         return (configuredPath.is_absolute()
@@ -50,19 +53,15 @@ bool Application::initialize(const std::string& configPath) {
     nameDb_->loadSurnames(resolveConfigPath(
         config_->getString("surnames_file", "surnames.txt")));
 
-    // 3. Create World
     world_ = std::make_unique<domain::World>();
-    
-    // 3. Create presentation layer
-    presentation_ = std::make_unique<presentation::WorldPresentation>();
-    
-    // 4. Setup initial population
     setup();
-    
+    updateVisualization();
+
     return true;
 }
 
-void Application::setup() {
+void Application::setup()
+{
     const int minAge = config_->min_founder_age;
     const int maxAge = config_->max_founder_age;
 
@@ -81,107 +80,136 @@ void Application::setup() {
 
     world_->createFamily(female1, male1, nameDb_->getRandomSurname());
     world_->createFamily(female2, male2, nameDb_->getRandomSurname());
-
-    presentation_->getAllPeople(*world_);
-    presentation_->getAllFamilies(*world_);
 }
 
+void Application::updateVisualization()
+{
+    if (!visualizer_ || !world_) {
+        return;
+    }
 
+    visualizer_->setData(
+        presentation::WorldPresentation::getAllPeople(*world_),
+        presentation::WorldPresentation::getAllFamilies(*world_)
+    );
 
-int Application::runVisual() {
-    visualizationEnabled_ = true;
-    pause();
+    visualizer_->setState({
+        isPaused_,
+        isAutoAdvance_,
+        clock_->currentYear()
+    });
+}
 
-    if (!config_ || !world_) {
+void Application::processVisualizationCommands()
+{
+    if (!visualizer_) {
+        return;
+    }
+
+    for (const auto command : visualizer_->consumeCommands()) {
+        switch (command) {
+        case VisualizationCommand::PauseResume:
+            isPaused_ = !isPaused_;
+            break;
+
+        case VisualizationCommand::NextYear:
+            if (isPaused_) {
+                nextYear();
+            }
+            break;
+
+        case VisualizationCommand::ToggleAutoAdvance:
+            toggleAutoAdvance();
+            break;
+
+        case VisualizationCommand::IncreaseSpeed:
+            setSpeed(std::min(
+                speed_ * SIMULATION_SPEED_MULTIPLIER,
+                MAX_SIMULATION_SPEED
+            ));
+            break;
+
+        case VisualizationCommand::DecreaseSpeed:
+            setSpeed(std::max(
+                speed_ / SIMULATION_SPEED_MULTIPLIER,
+                MIN_SIMULATION_SPEED
+            ));
+            break;
+        }
+    }
+
+}
+
+int Application::runVisual()
+{
+    if (!visualizer_) {
+        throw std::logic_error("Visual mode requested without a visualizer");
+    }
+
+    if (!world_ || !config_) {
         if (!initialize()) {
             return 1;
         }
     }
 
-    if (!window_ || !window_->isOpen()) {
-        sf::VideoMode videoMode(
-            visualization::VisualizationConfig::WINDOW_WIDTH,
-            visualization::VisualizationConfig::WINDOW_HEIGHT
-        );
-
-        window_ = std::make_unique<sf::RenderWindow>(
-            videoMode,
-            "Family Tree Simulation",
-            sf::Style::Default
-        );
-
-        window_->setFramerateLimit(
-            visualization::VisualizationConfig::FRAMERATE_LIMIT
-        );
-    }
+    updateVisualization();
 
     using Clock = std::chrono::steady_clock;
-
-    // Accumulated simulation time, measured in years.
     double accumulator = 0.0;
-
     auto previousFrameTime = Clock::now();
 
-    while (window_->isOpen()) {
-        handleEvents();
+    while (visualizer_->isOpen()) {
+        visualizer_->processEvents();
+        processVisualizationCommands();
 
-        if (!window_->isOpen()) {
+        if (!visualizer_->isOpen()) {
             break;
         }
 
         const auto currentFrameTime = Clock::now();
-
-        const std::chrono::duration<double> elapsed =
-            currentFrameTime - previousFrameTime;
-
+        const double elapsed = std::chrono::duration<double>(
+            currentFrameTime - previousFrameTime
+        ).count();
         previousFrameTime = currentFrameTime;
 
-        // Prevent large simulation jumps after a long frame.
-        const double deltaTime = std::min(
-            elapsed.count(),
-            visualization::VisualizationConfig::MAX_FRAME_TIME
-        );
+        const double deltaTime = std::min(elapsed, MAX_FRAME_TIME);
 
-        // Convert real time into simulation time.
+        // Preserve the existing semantics: auto-advance continues even
+        // while paused; otherwise a paused simulation waits for a step command.
         if (!isPaused_ || isAutoAdvance_) {
             accumulator += deltaTime * speed_;
         }
 
-        // Execute one update for each accumulated simulation year.
         while (accumulator >= 1.0) {
             update();
             accumulator -= 1.0;
         }
 
-        render();
+        visualizer_->setState({
+            isPaused_,
+            isAutoAdvance_,
+            clock_->currentYear()
+        });
+        visualizer_->render();
     }
-
-    window_.reset();
 
     return 0;
 }
 
-int Application::runHeadless(int years) {
+int Application::runHeadless(int years)
+{
     if (years < 0) {
         throw std::invalid_argument(
             "Number of simulation years cannot be negative"
         );
     }
 
-    // Disable visualization before initialization.
-    visualizationEnabled_ = false;
-
-    // Close any existing window.
-    window_.reset();
-
-    // Initialize the application if necessary.
-    if (!config_ || !world_) {
+    if (!world_ || !config_) {
         if (!initialize()) {
             return 1;
         }
     }
 
-    // Run exactly the requested number of simulation years.
     for (int year = 0; year < years; ++year) {
         update();
     }
@@ -189,24 +217,34 @@ int Application::runHeadless(int years) {
     return 0;
 }
 
-void Application::pause() {
+void Application::pause()
+{
     isPaused_ = true;
+    updateVisualization();
 }
 
-void Application::resume() {
+void Application::resume()
+{
     isPaused_ = false;
+    updateVisualization();
 }
 
-void Application::nextYear() {
+void Application::nextYear()
+{
     update();
 }
 
-void Application::setSpeed(double speed) {
-    using Config = visualization::VisualizationConfig;
+void Application::toggleAutoAdvance()
+{
+    isAutoAdvance_ = !isAutoAdvance_;
+    updateVisualization();
+}
 
+void Application::setSpeed(double speed)
+{
     if (!std::isfinite(speed) ||
-        speed < Config::MIN_SIMULATION_SPEED ||
-        speed > Config::MAX_SIMULATION_SPEED) {
+        speed < MIN_SIMULATION_SPEED ||
+        speed > MAX_SIMULATION_SPEED) {
         throw std::invalid_argument(
             "Simulation speed is outside the allowed range"
         );
@@ -215,112 +253,76 @@ void Application::setSpeed(double speed) {
     speed_ = speed;
 }
 
-void Application::toggleAutoAdvance() {
-    isAutoAdvance_ = !isAutoAdvance_;
-}
-
-int Application::getCurrentYear() const {
+int Application::getCurrentYear() const
+{
     return clock_->currentYear();
 }
 
-bool Application::isPaused() const {
+bool Application::isPaused() const
+{
     return isPaused_;
 }
 
-bool Application::isAutoAdvance() const {
+bool Application::isAutoAdvance() const
+{
     return isAutoAdvance_;
 }
-double Application::getSpeed() const {
+
+double Application::getSpeed() const
+{
     return speed_;
 }
 
-presentation::PersonDisplay Application::getPersonData(domain::PersonId id) const {
+presentation::PersonDisplay Application::getPersonData(domain::PersonId id) const
+{
+    if (!world_) {
+        throw std::logic_error("Application has not been initialized");
+    }
     return presentation::WorldPresentation::getPersonData(*world_, id);
 }
 
-void Application::getStatistics(int& population, int& families,
-                                 int& children, int& adults, int& elders) const {
-    ftree::simulation::StatisticsSystem::collectStatistics(*world_, 0,
-        population, families, children, adults, elders);
-}
-
-void Application::handleEvents() {
-    if (!window_) return;
-
-    sf::Event event;
-    while (window_->pollEvent(event)) {
-        if (event.type == sf::Event::Closed) {
-            window_->close();
-        }
-        
-        // Key handling
-        if (event.type == sf::Event::KeyPressed) {
-            switch (event.key.code) {
-                case sf::Keyboard::Escape:
-                    window_->close();
-                    break;
-                case sf::Keyboard::R:
-                    // Reset camera
-                    break;
-                case sf::Keyboard::Space:
-                    isPaused_ = !isPaused_;
-                    break;
-                case sf::Keyboard::Right:
-                    if (isPaused_) {
-                        nextYear();
-                    }
-                    break;
-                case sf::Keyboard::A:
-                    toggleAutoAdvance();
-                    break;
-                case sf::Keyboard::Up:
-                    setSpeed(std::min(
-                        speed_ * visualization::VisualizationConfig::SIMULATION_SPEED_MULTIPLIER,
-                        visualization::VisualizationConfig::MAX_SIMULATION_SPEED
-                    ));
-                    break;
-
-                case sf::Keyboard::Down:
-                    setSpeed(std::max(
-                        speed_ / visualization::VisualizationConfig::SIMULATION_SPEED_MULTIPLIER,
-                        visualization::VisualizationConfig::MIN_SIMULATION_SPEED
-                    ));
-                    break;
-                case sf::Keyboard::C:
-                    // Toggle controls hint
-                    break;
-                case sf::Keyboard::H:
-                    // Select hovered person
-                    break;
-                default:
-                    break;
-            }
-        }
+void Application::getStatistics(
+    int& population,
+    int& families,
+    int& children,
+    int& adults,
+    int& elders
+) const
+{
+    if (!world_) {
+        population = families = children = adults = elders = 0;
+        return;
     }
+
+    simulation::StatisticsSystem::collectStatistics(
+        *world_, clock_->currentYear(),
+        population, families, children, adults, elders
+    );
 }
 
-void Application::update() {
-    if (!world_ || !config_ || !rng_ || !clock_) {
+void Application::update()
+{
+    if (!world_ || !config_ || !rng_ || !clock_ || !nameDb_) {
         return;
     }
 
     clock_->nextYear();
 
-    ftree::simulation::AgingSystem::ageAllLiving(*world_);
-    ftree::simulation::DeathSystem::processDeaths(
+    simulation::AgingSystem::ageAllLiving(*world_);
+    simulation::DeathSystem::processDeaths(
         *world_, config_->mortality_a, config_->mortality_b, *rng_);
 
-    ftree::simulation::MarriageSystem::processMarriages(
+    simulation::MarriageSystem::processMarriages(
         *world_, *config_, *rng_, *nameDb_);
 
     for (const auto& [familyId, family] : world_->getAllFamilies()) {
         (void)familyId;
-        ftree::simulation::PregnancySystem::tryConceive(
+        simulation::PregnancySystem::tryConceive(
             *world_, family.motherId, family.fatherId,
             config_->base_conception_prob, *rng_);
     }
 
-    ftree::simulation::BirthSystem::processBirths(
+    simulation::BirthSystem::processBirths(
         *world_, config_->prob_triple, config_->prob_twin, *rng_);
 
     int population = 0;
@@ -328,22 +330,13 @@ void Application::update() {
     int children = 0;
     int adults = 0;
     int elders = 0;
-    ftree::simulation::StatisticsSystem::collectStatistics(
+    simulation::StatisticsSystem::collectStatistics(
         *world_, clock_->currentYear(),
         population, families, children, adults, elders);
-    ftree::simulation::StatisticsSystem::printStatistics(
+    simulation::StatisticsSystem::printStatistics(
         clock_->currentYear(), population, families, children, adults, elders);
-}
 
-void Application::render() {
-    if (!window_) return;
-    
-    window_->clear(sf::Color(240, 240, 240));
-    
-    // Render the visualization scene
-    // Would call scene_->render(*window_)
-    
-    window_->display();
+    updateVisualization();
 }
 
 } // namespace ftree::application
