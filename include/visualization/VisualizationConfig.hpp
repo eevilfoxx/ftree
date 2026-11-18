@@ -19,4 +19,4 @@ struct VisualizationConfig {
     static constexpr double MAX_FRAME_TIME = 0.25;
 };
 
-} // namespace ftree::vizualization
+} // namespace ftree::visualization
