@@ -20,3 +20,6 @@ AGENT_RULES.md
 /prompts
 compile_commands.json
 *.zip
+
+# Local credentials
+.env

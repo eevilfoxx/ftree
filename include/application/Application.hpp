@@ -1,6 +1,7 @@
 #pragma once
 
 #include "application/IVisualizer.hpp"
+#include "application/ports/ISimulationRepository.hpp"
 #include "core/NameDatabase.hpp"
 #include "core/Random.hpp"
 #include "core/SimulationClock.hpp"
@@ -13,12 +14,26 @@
 
 namespace ftree::application {
 
+enum class StartupMode { CreateNew, LoadExisting };
+
+struct StartupSelection {
+    StartupMode mode = StartupMode::CreateNew;
+    ports::SimulationId simulationId = 0;
+    std::string newSimulationName = "New simulation";
+};
+
 class Application {
 public:
-    explicit Application(std::unique_ptr<IVisualizer> visualizer = nullptr);
+    Application(
+        std::unique_ptr<IVisualizer> visualizer,
+        std::unique_ptr<ports::ISimulationRepository> repository
+    );
     ~Application();
 
-    bool initialize(const std::string& configPath = "config/simulation.cfg");
+    bool initialize(
+        const StartupSelection& selection,
+        const std::string& configPath = "config/simulation.cfg"
+    );
 
     int runVisual();
     int runHeadless(int years);
@@ -56,6 +71,9 @@ private:
     std::unique_ptr<core::NameDatabase> nameDb_;
     std::unique_ptr<domain::World> world_;
     std::unique_ptr<IVisualizer> visualizer_;
+    std::unique_ptr<ports::ISimulationRepository> repository_;
+    ports::SimulationId simulationId_ = 0;
+    std::string simulationName_;
 
     bool isPaused_ = false;
     bool isAutoAdvance_ = false;
@@ -64,6 +82,8 @@ private:
     void setup();
     void update();
     void updateVisualization();
+    ports::SimulationSnapshot createSimulationSnapshot() const;
+    void saveCurrentSimulation();
     void processVisualizationCommands();
 };
 

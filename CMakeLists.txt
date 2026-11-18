@@ -8,6 +8,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(BUILD_TESTING "Build tests" ON)
 
+find_package(PostgreSQL REQUIRED)
+
 function(ftree_enable_warnings target)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /permissive-)
@@ -53,6 +55,7 @@ set(FTREE_CORE_SOURCES
     src/presentation/TreeLayout.cpp
 
     src/application/Application.cpp
+    src/application/StartupPrompt.cpp
 )
 
 add_library(ftree_core STATIC ${FTREE_CORE_SOURCES})
@@ -65,7 +68,26 @@ ftree_enable_warnings(ftree_core)
 add_executable(FamilyTreeHeadless
     src/headless_main.cpp
 )
-target_link_libraries(FamilyTreeHeadless PRIVATE ftree_core)
+add_library(ftree_infrastructure_postgres STATIC
+    src/infrastructure/postgres/PostgresSimulationRepository.cpp
+)
+target_include_directories(ftree_infrastructure_postgres PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+target_link_libraries(ftree_infrastructure_postgres PUBLIC
+    ftree_core
+    PostgreSQL::PostgreSQL
+)
+target_compile_definitions(ftree_infrastructure_postgres PRIVATE
+    FTREE_MIGRATIONS_DIR="${PROJECT_SOURCE_DIR}/migrations"
+)
+ftree_enable_warnings(ftree_infrastructure_postgres)
+
+# The headless executable also uses PostgreSQL as its persistent source of truth.
+target_link_libraries(FamilyTreeHeadless PRIVATE
+    ftree_core
+    ftree_infrastructure_postgres
+)
 ftree_enable_warnings(FamilyTreeHeadless)
 
 # SFML is optional: visualization is built only when SFML is available.
@@ -106,16 +128,19 @@ if(SFML_FOUND)
     target_link_libraries(FamilyTree PRIVATE
         ftree_core
         ftree_visualization
+        ftree_infrastructure_postgres
     )
     ftree_enable_warnings(FamilyTree)
 
-    install(TARGETS FamilyTree FamilyTreeHeadless DESTINATION bin)
+    install(TARGETS FamilyTree FamilyTreeHeadless ftree_infrastructure_postgres DESTINATION bin)
+    install(DIRECTORY migrations/ DESTINATION share/ftree/migrations)
 else()
     message(WARNING
         "SFML was not found: the graphical FamilyTree executable will not be built. "
         "FamilyTreeHeadless, ftree_core, and available tests can still be built."
     )
-    install(TARGETS FamilyTreeHeadless DESTINATION bin)
+    install(TARGETS FamilyTreeHeadless ftree_infrastructure_postgres DESTINATION bin)
+    install(DIRECTORY migrations/ DESTINATION share/ftree/migrations)
 endif()
 
 if(BUILD_TESTING)
@@ -144,10 +169,15 @@ if(BUILD_TESTING)
             tests/test_FamilyDisplay.cpp
             tests/test_WorldPresentation.cpp
             tests/test_TreeLayout.cpp
+            tests/domain/world_snapshot_test.cpp
+            tests/core/random_state_test.cpp
+            tests/infrastructure/postgres_repository_test.cpp
+            tests/application/application_persistence_test.cpp
         )
 
         target_link_libraries(FamilyTreeTests PRIVATE
             ftree_core
+            ftree_infrastructure_postgres
             GTest::gtest
             GTest::gtest_main
         )

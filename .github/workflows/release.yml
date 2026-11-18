@@ -29,6 +29,7 @@ jobs:
             build-essential \
             cmake \
             libsfml-dev \
+            libpq-dev \
             libgtest-dev
 
       - name: Configure CMake
@@ -104,6 +105,7 @@ jobs:
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
             mingw-w64-x86_64-sfml
+            mingw-w64-x86_64-postgresql
             mingw-w64-x86_64-gtest
             zip
 

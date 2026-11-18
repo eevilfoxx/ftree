@@ -2,6 +2,7 @@
 
 #include "Person.hpp"
 #include "Family.hpp"
+#include "WorldSnapshot.hpp"
 #include <unordered_map>
 #include <vector>
 #include <optional>
@@ -121,6 +122,132 @@ public:
             appendUnique(childId);
         }
         return members;
+    }
+
+    WorldSnapshot createSnapshot() const {
+        WorldSnapshot snapshot;
+        snapshot.nextPersonId = nextPersonId_;
+        snapshot.nextFamilyId = nextFamilyId_;
+        snapshot.people.reserve(people_.size());
+        for (const auto& entry : people_) {
+            if (entry.first != entry.second.id) {
+                throw std::logic_error("World person map key does not match PersonData::id");
+            }
+            snapshot.people.push_back(entry.second);
+        }
+        std::sort(snapshot.people.begin(), snapshot.people.end(),
+            [](const PersonData& a, const PersonData& b) { return a.id < b.id; });
+
+        snapshot.families.reserve(families_.size());
+        for (const auto& entry : families_) {
+            if (entry.first != entry.second.id) {
+                throw std::logic_error("World family map key does not match FamilyData::id");
+            }
+            snapshot.families.push_back(entry.second);
+        }
+        std::sort(snapshot.families.begin(), snapshot.families.end(),
+            [](const FamilyData& a, const FamilyData& b) { return a.id < b.id; });
+        return snapshot;
+    }
+
+    static World fromSnapshot(const WorldSnapshot& snapshot) {
+        World restored;
+        PersonId maxPersonId = 0;
+        FamilyId maxFamilyId = 0;
+
+        for (const auto& person : snapshot.people) {
+            if (person.id == 0 || person.age < 0
+                || (person.gender != Gender::Male && person.gender != Gender::Female)) {
+                throw std::invalid_argument("WorldSnapshot contains an invalid person ID, gender, or age");
+            }
+            if (person.pregnant && (!person.alive || person.gender != Gender::Female)) {
+                throw std::invalid_argument("WorldSnapshot contains an invalid pregnancy state");
+            }
+            if (!restored.people_.emplace(person.id, person).second) {
+                throw std::invalid_argument("WorldSnapshot contains duplicate person IDs");
+            }
+            maxPersonId = std::max(maxPersonId, person.id);
+        }
+
+        for (const auto& family : snapshot.families) {
+            if (family.id == 0 || family.motherId == 0 || family.fatherId == 0
+                || family.motherId == family.fatherId) {
+                throw std::invalid_argument("WorldSnapshot contains an invalid family");
+            }
+            if (!restored.families_.emplace(family.id, family).second) {
+                throw std::invalid_argument("WorldSnapshot contains duplicate family IDs");
+            }
+            maxFamilyId = std::max(maxFamilyId, family.id);
+        }
+
+        if (snapshot.nextPersonId != 0 && snapshot.nextPersonId <= maxPersonId) {
+            throw std::invalid_argument("WorldSnapshot nextPersonId would reuse an existing ID");
+        }
+        if (snapshot.nextFamilyId != 0 && snapshot.nextFamilyId <= maxFamilyId) {
+            throw std::invalid_argument("WorldSnapshot nextFamilyId would reuse an existing ID");
+        }
+
+        for (const auto& [id, person] : restored.people_) {
+            (void)id;
+            const auto requirePerson = [&restored](PersonId relatedId, const char* relation) {
+                if (relatedId != 0 && restored.people_.find(relatedId) == restored.people_.end()) {
+                    throw std::invalid_argument(std::string("WorldSnapshot has missing ") + relation);
+                }
+            };
+            requirePerson(person.motherId, "mother");
+            requirePerson(person.fatherId, "father");
+            if (person.motherId == person.id || person.fatherId == person.id
+                || (person.motherId != 0 && person.motherId == person.fatherId)) {
+                throw std::invalid_argument("WorldSnapshot contains an invalid parent relationship");
+            }
+            if (person.motherId != 0
+                && restored.people_.at(person.motherId).gender != Gender::Female) {
+                throw std::invalid_argument("WorldSnapshot mother must be female");
+            }
+            if (person.fatherId != 0
+                && restored.people_.at(person.fatherId).gender != Gender::Male) {
+                throw std::invalid_argument("WorldSnapshot father must be male");
+            }
+            if (person.familyId != 0) {
+                const auto family = restored.families_.find(person.familyId);
+                if (family == restored.families_.end()) {
+                    throw std::invalid_argument("WorldSnapshot person references a missing family");
+                }
+                if (family->second.motherId != person.id && family->second.fatherId != person.id) {
+                    throw std::invalid_argument("WorldSnapshot person family link does not point to a partner family");
+                }
+            }
+        }
+
+        for (const auto& [id, family] : restored.families_) {
+            const auto mother = restored.people_.find(family.motherId);
+            const auto father = restored.people_.find(family.fatherId);
+            if (mother == restored.people_.end() || father == restored.people_.end()) {
+                throw std::invalid_argument("WorldSnapshot family references a missing parent");
+            }
+            if (mother->second.gender != Gender::Female || father->second.gender != Gender::Male) {
+                throw std::invalid_argument("WorldSnapshot family has parents with invalid genders");
+            }
+            if (mother->second.familyId != id || father->second.familyId != id) {
+                throw std::invalid_argument("WorldSnapshot family and parent family links disagree");
+            }
+            std::unordered_map<PersonId, bool> seenChildren;
+            for (PersonId childId : family.childrenIds) {
+                const auto child = restored.people_.find(childId);
+                if (child == restored.people_.end() || childId == family.motherId
+                    || childId == family.fatherId || !seenChildren.emplace(childId, true).second) {
+                    throw std::invalid_argument("WorldSnapshot contains an invalid family child");
+                }
+                if (child->second.motherId != family.motherId
+                    || child->second.fatherId != family.fatherId) {
+                    throw std::invalid_argument("WorldSnapshot child parent links disagree with family");
+                }
+            }
+        }
+
+        restored.nextPersonId_ = snapshot.nextPersonId;
+        restored.nextFamilyId_ = snapshot.nextFamilyId;
+        return restored;
     }
 
     // Delete/archive operations

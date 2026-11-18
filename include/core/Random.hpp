@@ -1,6 +1,7 @@
 #pragma once
 
 #include <random>
+#include <string>
 
 namespace ftree::core {
 
@@ -15,6 +16,8 @@ public:
 
     std::mt19937& engine() noexcept { return engine_; }
     unsigned seed() const noexcept { return seed_; }
+    std::string serializeState() const;
+    void restoreState(const std::string& state);
 
 private:
     std::mt19937 engine_;

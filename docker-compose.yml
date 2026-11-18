@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: ftree-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ftree
+      POSTGRES_USER: ftree
+      POSTGRES_PASSWORD: ${FTREE_POSTGRES_PASSWORD:-change_me_before_use}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ftree_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ftree -d ftree"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  ftree_postgres_data:

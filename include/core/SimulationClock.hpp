@@ -14,6 +14,7 @@ public:
     
     // Reset to year 0
     void reset();
+    void restoreYear(int year);
     
 private:
     int currentYear_;

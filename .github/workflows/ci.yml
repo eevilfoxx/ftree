@@ -41,6 +41,7 @@ jobs:
             build-essential \
             cmake \
             libsfml-dev \
+            libpq-dev \
             libgtest-dev
 
       - name: Configure CMake
@@ -189,6 +190,7 @@ jobs:
           & (Join-Path $vcpkgRoot "vcpkg.exe") install `
             --vcpkg-root $vcpkgRoot `
             sfml:x64-windows `
+            libpq:x64-windows `
             gtest:x64-windows
 
           if ($LASTEXITCODE -ne 0) {

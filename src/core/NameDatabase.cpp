@@ -88,4 +88,15 @@ bool NameDatabase::areSurnamesLoaded() const {
     return !surnames_.empty();
 }
 
+NameDatabaseSnapshot NameDatabase::createSnapshot() const {
+    return {maleNames_, femaleNames_, surnames_};
+}
+
+void NameDatabase::restoreSnapshot(
+    const NameDatabaseSnapshot& snapshot) {
+    maleNames_ = snapshot.maleNames;
+    femaleNames_ = snapshot.femaleNames;
+    surnames_ = snapshot.surnames;
+}
+
 } // namespace ftree::core

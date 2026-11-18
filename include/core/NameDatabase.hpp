@@ -4,7 +4,14 @@
 #include <string>
 #include <vector>
 
+
 namespace ftree::core {
+
+struct NameDatabaseSnapshot {
+    std::vector<std::string> maleNames;
+    std::vector<std::string> femaleNames;
+    std::vector<std::string> surnames;
+};
 
 class NameDatabase {
 public:
@@ -22,6 +29,9 @@ public:
     // Check if already loaded
     bool areNamesLoaded() const;
     bool areSurnamesLoaded() const;
+
+    NameDatabaseSnapshot createSnapshot() const;
+    void restoreSnapshot(const NameDatabaseSnapshot& snapshot);
     
 private:
     std::vector<std::string> maleNames_;

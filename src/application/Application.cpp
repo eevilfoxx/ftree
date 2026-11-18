@@ -18,45 +18,77 @@
 
 namespace ftree::application {
 
-Application::Application(std::unique_ptr<IVisualizer> visualizer)
+Application::Application(
+    std::unique_ptr<IVisualizer> visualizer,
+    std::unique_ptr<ports::ISimulationRepository> repository
+)
     : clock_(std::make_unique<core::SimulationClock>()),
       nameDb_(std::make_unique<core::NameDatabase>()),
-      visualizer_(std::move(visualizer))
+      visualizer_(std::move(visualizer)),
+      repository_(std::move(repository))
 {
 }
 
 Application::~Application() = default;
 
-bool Application::initialize(const std::string& configPath)
+bool Application::initialize(
+    const StartupSelection& selection,
+    const std::string& configPath)
 {
-    clock_->reset();
-    config_ = std::make_unique<core::SimulationConfig>(
-        core::SimulationConfig::loadFromFile(configPath)
-    );
+    if (!repository_) {
+        throw std::logic_error("Application requires a simulation repository");
+    }
+    if (world_) {
+        throw std::logic_error("Application is already initialized");
+    }
 
-    rng_ = std::make_unique<core::Random>(42);
+    if (selection.mode == StartupMode::LoadExisting) {
+        if (selection.simulationId <= 0) {
+            throw std::invalid_argument("A valid simulation ID is required");
+        }
+        const auto snapshot = repository_->loadSimulation(selection.simulationId);
+        world_ = std::make_unique<domain::World>(
+            domain::World::fromSnapshot(snapshot.world));
+        config_ = std::make_unique<core::SimulationConfig>(snapshot.config);
+        rng_ = std::make_unique<core::Random>(snapshot.randomSeed);
+        rng_->restoreState(snapshot.randomEngineState);
+        clock_->restoreYear(snapshot.currentYear);
+        nameDb_->restoreSnapshot(snapshot.nameDatabase);
+        simulationId_ = snapshot.id;
+        simulationName_ = snapshot.name;
+    } else {
+        if (selection.newSimulationName.empty()) {
+            throw std::invalid_argument("Simulation name cannot be empty");
+        }
+        clock_->reset();
+        config_ = std::make_unique<core::SimulationConfig>(
+            core::SimulationConfig::loadFromFile(configPath));
+        rng_ = std::make_unique<core::Random>(42);
 
-    const std::filesystem::path configDirectory =
-        std::filesystem::path(configPath).parent_path();
+        const std::filesystem::path configDirectory =
+            std::filesystem::path(configPath).parent_path();
+        const auto resolveConfigPath = [&configDirectory](const std::string& path) {
+            const std::filesystem::path configuredPath(path);
+            return (configuredPath.is_absolute()
+                ? configuredPath
+                : configDirectory / configuredPath).lexically_normal().string();
+        };
+        nameDb_->loadMaleNames(resolveConfigPath(
+            config_->getString("male_names_file", "male_names.txt")));
+        nameDb_->loadFemaleNames(resolveConfigPath(
+            config_->getString("female_names_file", "female_names.txt")));
+        nameDb_->loadSurnames(resolveConfigPath(
+            config_->getString("surnames_file", "surnames.txt")));
 
-    const auto resolveConfigPath = [&configDirectory](const std::string& path) {
-        const std::filesystem::path configuredPath(path);
-        return (configuredPath.is_absolute()
-            ? configuredPath
-            : configDirectory / configuredPath).lexically_normal().string();
-    };
+        world_ = std::make_unique<domain::World>();
+        setup();
+        auto initialSnapshot = createSimulationSnapshot();
+        initialSnapshot.name = selection.newSimulationName;
+        simulationName_ = selection.newSimulationName;
+        simulationId_ = repository_->createSimulation(initialSnapshot);
+    }
 
-    nameDb_->loadMaleNames(resolveConfigPath(
-        config_->getString("male_names_file", "male_names.txt")));
-    nameDb_->loadFemaleNames(resolveConfigPath(
-        config_->getString("female_names_file", "female_names.txt")));
-    nameDb_->loadSurnames(resolveConfigPath(
-        config_->getString("surnames_file", "surnames.txt")));
-
-    world_ = std::make_unique<domain::World>();
-    setup();
     updateVisualization();
-
     return true;
 }
 
@@ -80,6 +112,31 @@ void Application::setup()
 
     world_->createFamily(female1, male1, nameDb_->getRandomSurname());
     world_->createFamily(female2, male2, nameDb_->getRandomSurname());
+}
+
+ports::SimulationSnapshot Application::createSimulationSnapshot() const
+{
+    if (!world_ || !config_ || !rng_ || !clock_ || !nameDb_) {
+        throw std::logic_error("Cannot snapshot an uninitialized application");
+    }
+    ports::SimulationSnapshot snapshot;
+    snapshot.id = simulationId_;
+    snapshot.name = simulationName_;
+    snapshot.currentYear = clock_->currentYear();
+    snapshot.world = world_->createSnapshot();
+    snapshot.config = *config_;
+    snapshot.randomSeed = rng_->seed();
+    snapshot.randomEngineState = rng_->serializeState();
+    snapshot.nameDatabase = nameDb_->createSnapshot();
+    return snapshot;
+}
+
+void Application::saveCurrentSimulation()
+{
+    if (!repository_ || simulationId_ <= 0) {
+        throw std::logic_error("Cannot save: simulation repository or ID is unavailable");
+    }
+    repository_->saveSimulation(createSimulationSnapshot());
 }
 
 void Application::updateVisualization()
@@ -147,9 +204,7 @@ int Application::runVisual()
     }
 
     if (!world_ || !config_) {
-        if (!initialize()) {
-            return 1;
-        }
+        throw std::logic_error("Application must be initialized before runVisual");
     }
 
     updateVisualization();
@@ -205,9 +260,7 @@ int Application::runHeadless(int years)
     }
 
     if (!world_ || !config_) {
-        if (!initialize()) {
-            return 1;
-        }
+        throw std::logic_error("Application must be initialized before runHeadless");
     }
 
     for (int year = 0; year < years; ++year) {
@@ -336,6 +389,7 @@ void Application::update()
     simulation::StatisticsSystem::printStatistics(
         clock_->currentYear(), population, families, children, adults, elders);
 
+    saveCurrentSimulation();
     updateVisualization();
 }
 
