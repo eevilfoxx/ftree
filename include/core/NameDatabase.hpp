@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Random.hpp"
+
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -23,8 +25,8 @@ public:
     void loadSurnames(const std::string& filename);
     
     // Get random name by gender
-    std::string getRandomName(bool isMale) const;
-    std::string getRandomSurname() const;
+    std::string getRandomName(bool isMale, Random& random) const;
+    std::string getRandomSurname(Random& random) const;
     
     // Check if already loaded
     bool areNamesLoaded() const;

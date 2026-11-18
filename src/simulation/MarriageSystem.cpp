@@ -95,7 +95,7 @@ int MarriageSystem::processMarriages(domain::World& world,
     for (domain::PersonId maleId : males) {
         for (domain::PersonId femaleId : females) {
             if (tryMarry(world, maleId, femaleId, config, random,
-                         names.getRandomSurname())) {
+                         names.getRandomSurname(random))) {
                 ++marriages;
                 break;
             }

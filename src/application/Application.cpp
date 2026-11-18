@@ -92,26 +92,31 @@ bool Application::initialize(
     return true;
 }
 
+
 void Application::setup()
 {
     const int minAge = config_->min_founder_age;
     const int maxAge = config_->max_founder_age;
 
-    const auto male1 = world_->createPerson(
-        nameDb_->getRandomName(true), domain::Gender::Male,
-        rng_->randomInt(minAge, maxAge));
-    const auto male2 = world_->createPerson(
-        nameDb_->getRandomName(true), domain::Gender::Male,
-        rng_->randomInt(minAge, maxAge));
-    const auto female1 = world_->createPerson(
-        nameDb_->getRandomName(false), domain::Gender::Female,
-        rng_->randomInt(minAge, maxAge));
-    const auto female2 = world_->createPerson(
-        nameDb_->getRandomName(false), domain::Gender::Female,
-        rng_->randomInt(minAge, maxAge));
+    constexpr int initialFamilyCount = 20;
 
-    world_->createFamily(female1, male1, nameDb_->getRandomSurname());
-    world_->createFamily(female2, male2, nameDb_->getRandomSurname());
+    for (int i = 0; i < initialFamilyCount; ++i)
+    {
+        const auto male = world_->createPerson(
+            nameDb_->getRandomName(true, *rng_),
+            domain::Gender::Male,
+            rng_->randomInt(minAge, maxAge));
+
+        const auto female = world_->createPerson(
+            nameDb_->getRandomName(false, *rng_),
+            domain::Gender::Female,
+            rng_->randomInt(minAge, maxAge));
+
+        world_->createFamily(
+            female,
+            male,
+            nameDb_->getRandomSurname(*rng_));
+    }
 }
 
 ports::SimulationSnapshot Application::createSimulationSnapshot() const
@@ -376,7 +381,7 @@ void Application::update()
     }
 
     simulation::BirthSystem::processBirths(
-        *world_, config_->prob_triple, config_->prob_twin, *rng_);
+        *world_, config_->prob_triple, config_->prob_twin, *nameDb_, *rng_);
 
     int population = 0;
     int families = 0;

@@ -66,18 +66,36 @@ void NameDatabase::loadSurnames(const std::string& filename) {
     file.close();
 }
 
-std::string NameDatabase::getRandomName(bool isMale) const {
-    const std::vector<std::string>& names = isMale ? maleNames_ : femaleNames_;
-    if (names.empty()) return "Unknown";
-    
-    // Use a simple deterministic approach - in real use would use Random engine
-    // For now return first name
-    return names[0];
+std::string NameDatabase::getRandomName(
+    bool isMale,
+    Random& random
+) const {
+    const std::vector<std::string>& names =
+        isMale ? maleNames_ : femaleNames_;
+
+    if (names.empty()) {
+        return "Unknown";
+    }
+
+    const int index = random.randomInt(
+        0,
+        static_cast<int>(names.size()) - 1
+    );
+
+    return names[index];
 }
 
-std::string NameDatabase::getRandomSurname() const {
-    if (surnames_.empty()) return "Unknown";
-    return surnames_[0];
+std::string NameDatabase::getRandomSurname(Random& random) const {
+    if (surnames_.empty()) {
+        return "Unknown";
+    }
+
+    const int index = random.randomInt(
+        0,
+        static_cast<int>(surnames_.size()) - 1
+    );
+
+    return surnames_[index];
 }
 
 bool NameDatabase::areNamesLoaded() const {

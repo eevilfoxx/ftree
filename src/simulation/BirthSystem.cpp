@@ -3,11 +3,13 @@
 #include <stdexcept>
 #include <cmath>
 
+
 namespace ftree::simulation {
 
 int BirthSystem::processBirths(domain::World& world,
                                double probTriple,
                                double probTwin,
+                               core::NameDatabase& nameDb,
                                core::Random& random) {
     if (!std::isfinite(probTriple) || !std::isfinite(probTwin)
         || probTriple < 0.0 || probTwin < 0.0
@@ -35,7 +37,7 @@ int BirthSystem::processBirths(domain::World& world,
             : (roll < probTriple + probTwin ? 2 : 1);
 
         for (int i = 0; i < childCount; ++i) {
-            if (giveBirth(world, motherId, "", random) != 0) {
+            if (giveBirth(world, motherId, nameDb.getRandomSurname(random), nameDb, random) != 0) {
                 ++births;
             }
         }
@@ -46,10 +48,12 @@ int BirthSystem::processBirths(domain::World& world,
     return births;
 }
 
-domain::PersonId BirthSystem::giveBirth(domain::World& world,
-                                       domain::PersonId motherId,
-                                       const std::string& /*surname*/,
-                                       core::Random& random) {
+domain::PersonId BirthSystem::giveBirth(
+                        domain::World& world,
+                        domain::PersonId motherId,
+                        const std::string& surname,
+                        core::NameDatabase& nameDb,
+                        core::Random& random) {
     if (!world.personExists(motherId)) {
         return 0;
     }
@@ -71,8 +75,11 @@ domain::PersonId BirthSystem::giveBirth(domain::World& world,
     const auto childGender = random.randomBool()
         ? domain::Gender::Male
         : domain::Gender::Female;
+
+    bool isMale = (childGender == domain::Gender::Male) ? true : false;
+
     const domain::PersonId childId =
-        world.createPerson("Newborn", childGender, 0);
+        world.createPerson(nameDb.getRandomName(isMale, random), childGender, 0);
 
     auto& child = world.getPersonRef(childId);
     child.motherId = motherId;

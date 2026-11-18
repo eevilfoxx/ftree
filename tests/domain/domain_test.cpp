@@ -19,6 +19,26 @@
 
 using namespace ftree::domain;
 
+#include <core/NameDatabase.hpp>
+
+namespace {
+
+ftree::core::NameDatabase createTestNameDatabase()
+{
+    ftree::core::NameDatabase nameDb;
+
+    ftree::core::NameDatabaseSnapshot snapshot;
+    snapshot.maleNames = {"John", "Robert"};
+    snapshot.femaleNames = {"Jane", "Alice"};
+    snapshot.surnames = {"Smith"};
+
+    nameDb.restoreSnapshot(snapshot);
+
+    return nameDb;
+}
+
+}
+
 // --- Domain Person Tests ---
 
 TEST(DomainPersonTest, DefaultConstructor) {
@@ -435,10 +455,11 @@ TEST(BirthSystemTest, GiveBirthCreatesChildAndPreservesGenealogy) {
 
     world.getPersonRef(motherId).pregnant = true;
 
+    auto nameDb = createTestNameDatabase();
     ftree::core::Random random(7);
 
     const auto childId = ftree::simulation::BirthSystem::giveBirth(
-        world, motherId, "Smith", random
+        world, motherId, "Smith", nameDb, random
     );
 
     ASSERT_NE(childId, 0u);
@@ -452,6 +473,13 @@ TEST(BirthSystemTest, GiveBirthCreatesChildAndPreservesGenealogy) {
     EXPECT_EQ(child->familyId, 0u);
 
     EXPECT_EQ(world.getFamily(familyId)->childrenIds.size(), 1u);
+
+    EXPECT_TRUE(
+        child->name == "John" ||
+        child->name == "Robert" ||
+        child->name == "Jane" ||
+        child->name == "Alice"
+    );
 }
 
 TEST(BirthSystemTest, ProcessBirthsResetsPregnancyAndCreatesOneToThreeChildren) {
@@ -465,10 +493,11 @@ TEST(BirthSystemTest, ProcessBirthsResetsPregnancyAndCreatesOneToThreeChildren) 
 
     world.getPersonRef(motherId).pregnant = true;
 
+    auto nameDb = createTestNameDatabase();
     ftree::core::Random random(7);
 
     const int births = ftree::simulation::BirthSystem::processBirths(
-        world, 0.01, 0.09, random
+        world, 0.01, 0.09, nameDb, random
     );
 
     EXPECT_GE(births, 1);
@@ -476,10 +505,26 @@ TEST(BirthSystemTest, ProcessBirthsResetsPregnancyAndCreatesOneToThreeChildren) 
 
     EXPECT_FALSE(world.getPerson(motherId)->pregnant);
 
+    const auto family = world.getFamily(familyId);
+    ASSERT_TRUE(family.has_value());
+
     EXPECT_EQ(
-        world.getFamily(familyId)->childrenIds.size(),
+        family->childrenIds.size(),
         static_cast<std::size_t>(births)
     );
+
+    for (const auto childId : family->childrenIds) {
+        const auto child = world.getPerson(childId);
+
+        ASSERT_TRUE(child.has_value());
+
+        EXPECT_TRUE(
+            child->name == "John" ||
+            child->name == "Robert" ||
+            child->name == "Jane" ||
+            child->name == "Alice"
+        );
+    }
 }
 
 TEST(MarriageSystemTest, SameAgeEligibleAdultsCanMarry) {

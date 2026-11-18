@@ -3,6 +3,7 @@
 #include "domain/Person.hpp"
 #include "domain/World.hpp"
 #include "core/Random.hpp"
+#include <core/NameDatabase.hpp>
 
 #include <string>
 
@@ -16,6 +17,7 @@ public:
     static int processBirths(domain::World& world,
                              double probTriple,
                              double probTwin,
+                             core::NameDatabase& nameDb,
                              core::Random& random);
 
     // Give birth to a child for a pregnant person
@@ -23,6 +25,7 @@ public:
     static domain::PersonId giveBirth(domain::World& world,
                                        domain::PersonId motherId,
                                        const std::string& surname,
+                                       core::NameDatabase& nameDb,
                                        core::Random& random);
 
     // Reset pregnancy state after birth
