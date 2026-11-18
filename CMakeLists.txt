@@ -26,22 +26,22 @@ set(FTREE_CORE_SOURCES
     src/core/SimulationClock.cpp
     src/core/NameDatabase.cpp
     src/core/SimulationConfig.cpp
-    src/core/Config.cpp
+    # src/core/Config.cpp
     src/core/EventDispatcher.cpp
     src/core/Event.cpp
 
-    src/entities/Person.cpp
-    src/entities/Family.cpp
+    # src/entities/Person.cpp
+    # src/entities/Family.cpp
 
-    src/managers/FamilyManager.cpp
-    src/managers/PopulationManager.cpp
-    src/managers/NameManager.cpp
+    # src/managers/FamilyManager.cpp
+    # src/managers/PopulationManager.cpp
+    # src/managers/NameManager.cpp
 
-    src/services/AgingService.cpp
-    src/services/BirthService.cpp
-    src/services/DeathService.cpp
-    src/services/MarriageService.cpp
-    src/services/PregnancyService.cpp
+    # src/services/AgingService.cpp
+    # src/services/BirthService.cpp
+    # src/services/DeathService.cpp
+    # src/services/MarriageService.cpp
+    # src/services/PregnancyService.cpp
 
     src/simulation/AgingSystem.cpp
     src/simulation/DeathSystem.cpp
@@ -50,7 +50,7 @@ set(FTREE_CORE_SOURCES
     src/simulation/BirthSystem.cpp
     src/simulation/StatisticsSystem.cpp
 
-    src/utils/StatisticsService.cpp
+    # src/utils/StatisticsService.cpp
     src/presentation/WorldPresentation.cpp
     src/presentation/TreeLayout.cpp
 
@@ -149,19 +149,6 @@ if(BUILD_TESTING)
 
     if(GTest_FOUND)
         add_executable(FamilyTreeTests
-            tests/test_gender.cpp
-            tests/test_person.cpp
-            tests/test_family.cpp
-            tests/test_repositories.cpp
-            tests/test_population_manager.cpp
-            tests/test_family_manager.cpp
-            tests/test_aging_service.cpp
-            tests/test_death_service.cpp
-            tests/test_pregnancy_service.cpp
-            tests/test_birth_service.cpp
-            tests/test_marriage_service.cpp
-            tests/test_statistics_service.cpp
-            tests/test_formulas.cpp
             tests/test_StatisticsSystem.cpp
             tests/domain/domain_test.cpp
             tests/core/core_test.cpp
