@@ -27,6 +27,19 @@ private:
     std::vector<std::string> maleNames_;
     std::vector<std::string> femaleNames_;
     std::vector<std::string> surnames_;
+
+public:
+    std::size_t maleNameCount() const noexcept {
+        return maleNames_.size();
+    }
+
+    std::size_t femaleNameCount() const noexcept {
+        return femaleNames_.size();
+    }
+
+    std::size_t surnameCount() const noexcept {
+        return surnames_.size();
+    }
 };
 
 } // namespace ftree::core

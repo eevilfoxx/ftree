@@ -132,6 +132,10 @@ if(BUILD_TESTING)
             GTest::gtest_main
         )
         ftree_enable_warnings(FamilyTreeTests)
+        
+        target_compile_definitions(FamilyTreeTests PRIVATE
+        FTREE_TEST_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+        )
 
         include(GoogleTest)
         gtest_discover_tests(FamilyTreeTests)

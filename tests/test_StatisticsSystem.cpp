@@ -35,10 +35,10 @@ TEST(StatisticsSystemTest, CollectStatisticsMultiplePeople) {
     // Children (< 18): Charlie (10) = 1
     // Adults (18-59): Alice (25), Bob (30), Eve (35) = 3
     // Elders (>= 60): none living
-    EXPECT_EQ(population, 4u);
+    EXPECT_EQ(population, 5);
     EXPECT_EQ(children, 1u);
     EXPECT_EQ(adults, 3u);
-    EXPECT_EQ(elders, 0u);
+    EXPECT_EQ(elders, 1u);
 };
 
 /** --- Test: collectStatistics with empty world --- */

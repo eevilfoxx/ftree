@@ -1,21 +1,36 @@
+
 #include <gtest/gtest.h>
+
 #include <entities/Family.hpp>
 #include <entities/Person.hpp>
 #include <entities/Gender.hpp>
 #include <managers/NameManager.hpp>
 
+#include <filesystem>
+#include <memory>
+
+namespace {
+
+const std::filesystem::path CONFIG_DIR =
+    std::filesystem::path(FTREE_TEST_SOURCE_DIR) / "config";
+
 class FamilyTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        NameManager::getInstance().loadNames(
-            "/home/evilfox/ftree/config/male_names.txt",
-            "/home/evilfox/ftree/config/female_names.txt"
+        auto& nameManager = NameManager::getInstance();
+
+        nameManager.loadNames(
+            (CONFIG_DIR / "male_names.txt").string(),
+            (CONFIG_DIR / "female_names.txt").string()
         );
-        NameManager::getInstance().loadSurnames(
-            "/home/evilfox/ftree/config/surnames.txt"
+
+        nameManager.loadSurnames(
+            (CONFIG_DIR / "surnames.txt").string()
         );
     }
 };
+
+} // namespace
 
 TEST_F(FamilyTest, ConstructorSetsParentsAndSurname) {
     auto mother = std::make_shared<Person>(1, Gender::Female, 30);
@@ -34,6 +49,7 @@ TEST_F(FamilyTest, GetChildrenInitiallyEmpty) {
     auto family = std::make_shared<Family>(1, mother, father);
 
     auto children = family->getChildren();
+
     EXPECT_TRUE(children.empty());
 }
 
@@ -43,15 +59,19 @@ TEST_F(FamilyTest, AddAndRemoveChild) {
     auto family = std::make_shared<Family>(1, mother, father);
 
     auto child = std::make_shared<Person>(3, Gender::Female, 0);
+
     family->addChild(child);
 
     auto children = family->getChildren();
+
     ASSERT_EQ(children.size(), 1);
     EXPECT_EQ(children[0]->getUuid(), 3);
     EXPECT_TRUE(family->hasChild(child));
 
     family->removeChild(child);
+
     children = family->getChildren();
+
     EXPECT_TRUE(children.empty());
     EXPECT_FALSE(family->hasChild(child));
 }
@@ -62,8 +82,10 @@ TEST_F(FamilyTest, RemoveNonExistentChild) {
     auto family = std::make_shared<Family>(1, mother, father);
 
     auto child = std::make_shared<Person>(3, Gender::Female, 0);
-    // Removing a child that was never added should not crash
+
+    // Removing a child that was never added should not crash.
     family->removeChild(child);
+
     EXPECT_TRUE(family->getChildren().empty());
 }
 
@@ -74,10 +96,12 @@ TEST_F(FamilyTest, AddMultipleChildren) {
 
     auto child1 = std::make_shared<Person>(3, Gender::Female, 0);
     auto child2 = std::make_shared<Person>(4, Gender::Male, 0);
+
     family->addChild(child1);
     family->addChild(child2);
 
     auto children = family->getChildren();
+
     ASSERT_EQ(children.size(), 2);
     EXPECT_TRUE(family->hasChild(child1));
     EXPECT_TRUE(family->hasChild(child2));
@@ -97,10 +121,11 @@ TEST_F(FamilyTest, SetSurname) {
     auto family = std::make_shared<Family>(1, mother, father);
 
     family->setSurname("Testov");
+
     EXPECT_EQ(family->getSurname(), "Testov");
 }
 
-TEST(FamilyTest, AddingSameChildTwiceDoesNotDuplicateMembership) {
+TEST_F(FamilyTest, AddingSameChildTwiceDoesNotDuplicateMembership) {
     auto mother = std::make_shared<Person>(1, Gender::Female, 30);
     auto father = std::make_shared<Person>(2, Gender::Male, 32);
     auto family = std::make_shared<Family>(1, mother, father);
@@ -112,22 +137,25 @@ TEST(FamilyTest, AddingSameChildTwiceDoesNotDuplicateMembership) {
     EXPECT_EQ(family->getChildren().size(), 1u);
 }
 
-TEST(FamilyTest, MovingChildRemovesItFromPreviousFamily) {
+TEST_F(FamilyTest, MovingChildRemovesItFromPreviousFamily) {
     auto mother = std::make_shared<Person>(1, Gender::Female, 30);
     auto father = std::make_shared<Person>(2, Gender::Male, 32);
+
     auto firstFamily = std::make_shared<Family>(1, mother, father);
     auto secondFamily = std::make_shared<Family>(2, mother, father);
+
     auto child = std::make_shared<Person>(3, Gender::Female, 0);
 
     firstFamily->addChild(child);
     secondFamily->addChild(child);
 
     EXPECT_TRUE(firstFamily->getChildren().empty());
+
     ASSERT_EQ(secondFamily->getChildren().size(), 1u);
     EXPECT_EQ(child->getFamily(), secondFamily);
 }
 
-TEST(FamilyTest, ParentCannotAlsoBeAddedAsChild) {
+TEST_F(FamilyTest, ParentCannotAlsoBeAddedAsChild) {
     auto mother = std::make_shared<Person>(1, Gender::Female, 30);
     auto father = std::make_shared<Person>(2, Gender::Male, 32);
     auto family = std::make_shared<Family>(1, mother, father);
