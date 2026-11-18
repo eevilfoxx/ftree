@@ -81,7 +81,7 @@ std::string NameDatabase::getRandomSurname() const {
 }
 
 bool NameDatabase::areNamesLoaded() const {
-    return !maleNames_.empty() && !femaleNames_.empty();
+    return !maleNames_.empty() || !femaleNames_.empty();;
 }
 
 bool NameDatabase::areSurnamesLoaded() const {

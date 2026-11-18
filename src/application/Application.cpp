@@ -2,12 +2,15 @@
 #include <SFML/Graphics.hpp>
 #include "simulation/PregnancySystem.hpp"
 #include "simulation/MarriageSystem.hpp"
+#include "visualization/VisualizationConfig.hpp"
 #include <fstream>
 #include <filesystem>
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
 #include <iostream>
+#include <chrono>
+#include <cmath>
 
 namespace ftree::application {
 
@@ -15,7 +18,7 @@ Application::Application(bool enableVisualization)
     : visualizationEnabled_(enableVisualization),
       isPaused_(false),
       isAutoAdvance_(false),
-      speed_(1) {
+      speed_(visualization::VisualizationConfig::INITIAL_SIMULATION_SPEED) {
     clock_ = std::make_unique<core::SimulationClock>();
     nameDb_ = std::make_unique<core::NameDatabase>();
 }
@@ -56,13 +59,6 @@ bool Application::initialize(const std::string& configPath) {
     // 4. Setup initial population
     setup();
     
-    // 5. Create window if visualization enabled
-    if (visualizationEnabled_) {
-        sf::VideoMode vm(1024, 768);
-        window_ = std::make_unique<sf::RenderWindow>(vm, "Family Tree Simulation", sf::Style::Default);
-        window_->setFramerateLimit(60);
-    }
-    
     return true;
 }
 
@@ -90,10 +86,11 @@ void Application::setup() {
     presentation_->getAllFamilies(*world_);
 }
 
-int Application::run(int years, bool headless) {
-    if (years < 0) {
-        throw std::invalid_argument("Number of simulation years cannot be negative");
-    }
+
+
+int Application::runVisual() {
+    visualizationEnabled_ = true;
+    pause();
 
     if (!config_ || !world_) {
         if (!initialize()) {
@@ -101,23 +98,92 @@ int Application::run(int years, bool headless) {
         }
     }
 
-    visualizationEnabled_ = !headless && visualizationEnabled_;
+    if (!window_ || !window_->isOpen()) {
+        sf::VideoMode videoMode(
+            visualization::VisualizationConfig::WINDOW_WIDTH,
+            visualization::VisualizationConfig::WINDOW_HEIGHT
+        );
 
-    if (headless) {
-        window_.reset();
+        window_ = std::make_unique<sf::RenderWindow>(
+            videoMode,
+            "Family Tree Simulation",
+            sf::Style::Default
+        );
+
+        window_->setFramerateLimit(
+            visualization::VisualizationConfig::FRAMERATE_LIMIT
+        );
     }
 
-    for (int frame = 0; frame < years; ++frame) {
-        if (!isPaused_ || isAutoAdvance_) {
-            for (int step = 0; step < speed_; ++step) {
-                update();
-            }
+    using Clock = std::chrono::steady_clock;
+
+    // Accumulated simulation time, measured in years.
+    double accumulator = 0.0;
+
+    auto previousFrameTime = Clock::now();
+
+    while (window_->isOpen()) {
+        handleEvents();
+
+        if (!window_->isOpen()) {
+            break;
         }
 
-        if (!headless && window_ && window_->isOpen()) {
-            handleEvents();
-            render();
+        const auto currentFrameTime = Clock::now();
+
+        const std::chrono::duration<double> elapsed =
+            currentFrameTime - previousFrameTime;
+
+        previousFrameTime = currentFrameTime;
+
+        // Prevent large simulation jumps after a long frame.
+        const double deltaTime = std::min(
+            elapsed.count(),
+            visualization::VisualizationConfig::MAX_FRAME_TIME
+        );
+
+        // Convert real time into simulation time.
+        if (!isPaused_ || isAutoAdvance_) {
+            accumulator += deltaTime * speed_;
         }
+
+        // Execute one update for each accumulated simulation year.
+        while (accumulator >= 1.0) {
+            update();
+            accumulator -= 1.0;
+        }
+
+        render();
+    }
+
+    window_.reset();
+
+    return 0;
+}
+
+int Application::runHeadless(int years) {
+    if (years < 0) {
+        throw std::invalid_argument(
+            "Number of simulation years cannot be negative"
+        );
+    }
+
+    // Disable visualization before initialization.
+    visualizationEnabled_ = false;
+
+    // Close any existing window.
+    window_.reset();
+
+    // Initialize the application if necessary.
+    if (!config_ || !world_) {
+        if (!initialize()) {
+            return 1;
+        }
+    }
+
+    // Run exactly the requested number of simulation years.
+    for (int year = 0; year < years; ++year) {
+        update();
     }
 
     return 0;
@@ -135,10 +201,17 @@ void Application::nextYear() {
     update();
 }
 
-void Application::setSpeed(int speed) {
-    if (speed < 1) {
-        throw std::invalid_argument("Simulation speed must be at least 1");
+void Application::setSpeed(double speed) {
+    using Config = visualization::VisualizationConfig;
+
+    if (!std::isfinite(speed) ||
+        speed < Config::MIN_SIMULATION_SPEED ||
+        speed > Config::MAX_SIMULATION_SPEED) {
+        throw std::invalid_argument(
+            "Simulation speed is outside the allowed range"
+        );
     }
+
     speed_ = speed;
 }
 
@@ -157,8 +230,7 @@ bool Application::isPaused() const {
 bool Application::isAutoAdvance() const {
     return isAutoAdvance_;
 }
-
-int Application::getSpeed() const {
+double Application::getSpeed() const {
     return speed_;
 }
 
@@ -202,12 +274,17 @@ void Application::handleEvents() {
                     toggleAutoAdvance();
                     break;
                 case sf::Keyboard::Up:
-                    if (speed_ < std::numeric_limits<int>::max()) {
-                        ++speed_;
-                    }
+                    setSpeed(std::min(
+                        speed_ * visualization::VisualizationConfig::SIMULATION_SPEED_MULTIPLIER,
+                        visualization::VisualizationConfig::MAX_SIMULATION_SPEED
+                    ));
                     break;
+
                 case sf::Keyboard::Down:
-                    speed_ = std::max(1, speed_ - 1);
+                    setSpeed(std::max(
+                        speed_ / visualization::VisualizationConfig::SIMULATION_SPEED_MULTIPLIER,
+                        visualization::VisualizationConfig::MIN_SIMULATION_SPEED
+                    ));
                     break;
                 case sf::Keyboard::C:
                     // Toggle controls hint

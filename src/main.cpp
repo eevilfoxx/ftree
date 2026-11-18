@@ -1,22 +1,28 @@
 #include "application/Application.hpp"
 
+#include <string>
+#include <stdexcept>
+
 int main(int argc, char* argv[]) {
-    // Parse arguments for headless mode
     bool headless = false;
+    int years = 100;
+
     for (int i = 1; i < argc; ++i) {
-        if (std::string(argv[i]) == "--headless") {
+        const std::string arg = argv[i];
+
+        if (arg == "--headless") {
             headless = true;
+        }
+        else if (arg == "--years" && i + 1 < argc) {
+            years = std::stoi(argv[++i]);
         }
     }
 
-    // createVisualization is the inverse of headless
-    bool createVisualization = !headless;
+    ftree::application::Application app(true);
 
-    // Create and run application
-    ftree::application::Application app(createVisualization);
+    if (headless) {
+        return app.runHeadless(years);
+    }
 
-    // run() initializes internally if not already initialized
-    app.run(100, headless);
-
-    return 0;
+    return app.runVisual();
 }

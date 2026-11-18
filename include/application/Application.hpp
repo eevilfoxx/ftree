@@ -31,21 +31,21 @@ public:
     bool initialize(const std::string& configPath = "config/simulation.cfg");
 
     // Run the simulation for the given number of years.
-    // If headless is true, no window is created and no events are polled.
-    int run(int years = 100, bool headless = false);
+    int runVisual();
+    int runHeadless(int years);
 
     // Simulation control
     void pause();
     void resume();
     void nextYear();
     void toggleAutoAdvance();
-    void setSpeed(int speed);  // speed multiplier
+    void setSpeed(double speed); // Sets simulation speed multiplier.
 
     // State queries
     int getCurrentYear() const;
     bool isPaused() const;
     bool isAutoAdvance() const;
-    int getSpeed() const;
+    double getSpeed() const;
 
     // Person data
     presentation::PersonDisplay getPersonData(domain::PersonId id) const;
@@ -65,7 +65,8 @@ private:
     bool visualizationEnabled_;
     bool isPaused_;
     bool isAutoAdvance_;
-    int speed_;
+    // Simulation speed multiplier: 1 = 1 year per second.
+    double speed_;
 
     // Internal methods
     void setup();

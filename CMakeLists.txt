@@ -80,10 +80,10 @@ if(SFML_FOUND)
     add_executable(FamilyTree
         src/main.cpp
         src/application/Application.cpp
-        src/vizualization/Visualizer.cpp
-        src/vizualization/Camera.cpp
-        src/vizualization/UI.cpp
-        src/vizualization/Scene.cpp
+        src/visualization/Visualizer.cpp
+        src/visualization/Camera.cpp
+        src/visualization/UI.cpp
+        src/visualization/Scene.cpp
     )
 
     target_link_libraries(FamilyTree PRIVATE
